@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<PluginConfig>
+	<Field id="infoLabel" type="label">
+		<Label>ThinkingCleaner plugin</Label>
+	</Field>
+    <Field id="simpleSeparator1" type="separator"/>
+	<Field id="pollingInterval" type="textfield" defaultValue="3" hidden="yes">
+		<Label>Polling Interval (sec):</Label>
+	</Field>
+	<Field id="reqTimeout" type="textfield" defaultValue="8" hidden="yes">
+		<Label>timeout (sec):</Label>
+	</Field>
+
+    <Field id="space2" type="label">
+    	<Label/>
+    </Field>
+	<Field type="checkbox" id="debugEnabled" defaultValue="false">
+		<Label>Enable debugging:</Label>
+		<Description>(not recommended)</Description>
+	</Field>
+</PluginConfig>
