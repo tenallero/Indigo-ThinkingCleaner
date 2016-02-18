@@ -1,32 +1,47 @@
 <?xml version="1.0"?>
 <Devices>
-    <!-- RooWIFI Device -->
+    <!-- ThinkingCleaner Device -->
     <Device type="relay" id="thinkingcleaner">
-        <Name>Thinking Cleaner Device</Name>
+        <Name>ThinkingCleaner Device</Name>
         <ConfigUI>
-            <Field id="label1" type="label">
-                <Label>Thinking connection</Label>
-            </Field>
-            <Field id="simpleSeparator1" type="separator"/>
-
-
-
+            
             <Field id="portintro1" type="label" fontSize="small" fontColor="darkgray">
-                <Label>First, you must configure your Thinking to connect to you LAN via WIFI. Please, follow the product instructions.</Label>
+                <Label>First, you must configure the ThinkingCleaner device and connect it to this LAN. </Label>
             </Field>
             <Field id="portintro2" type="label" fontSize="small" fontColor="darkgray">
-                <Label>Please, assign a fix IP address to your Thinking.</Label>
+                <Label>Follow the product instructions</Label>
             </Field>
-             <Field id="portintro5" type="label" fontSize="small" fontColor="darkgray">
+            
+            <Field id="portintro2b" type="label" fontSize="small" fontColor="darkgray">
                 <Label></Label>
+            </Field>
+              
+            <Field id="portintro3" type="label" fontSize="small" fontColor="darkgray">
+                <Label>Please, assign a static IP address to your ThinkingCleaner device.</Label>
+            </Field>
+            <Field id="portintro4" type="label" fontSize="small" fontColor="darkgray">
+                <Label>Use your DHCP server for this.</Label>
+            </Field>
+            
+            <Field id="portintro5" type="label" fontSize="small" fontColor="darkgray">
+                <Label></Label>
+            </Field>
+
+            <Field id="simpleSeparator1" type="separator"/>
+             <Field id="discoveryButton" 
+                    type="button" 
+                    tooltip="Click this button to start the automatic discovery process.">
+                <Label>You can discover devices using this button:</Label>
+                <Title>Discover Now!</Title>
+                <CallbackMethod>deviceDiscoverUI</CallbackMethod>                
             </Field>
 
             <Field id="address" type="textfield">
                 <Label>IP Address:</Label>
-                <Description>Enter the ip address of your ThinkingCleaner</Description>
+                <Description>Enter the IP address for this device</Description>
             </Field>
 
-            <Field id="useAuthentication" type="checkbox" defaultValue="false">
+            <Field id="useAuthentication" type="checkbox" defaultValue="false" hidden="true">
                 <Label>Use authentication:</Label>
             </Field>
             <Field id="username" type="textfield" defaultValue="admin" visibleBindingId="useAuthentication" visibleBindingValue="true">
@@ -35,18 +50,7 @@
             <Field id="password" type="textfield" defaultValue="thinking" visibleBindingId="useAuthentication" visibleBindingValue="true">
                 <Label>Password:</Label>
             </Field>
-            <!--
-            <Field id="lastSeen" hidden="true" type="textfield" defaultValue=""/>
-            -->
-            <!--
-            <Field id="checkConnectionButton"
-                   type="button"
-                   tooltip="Click this button to check connection to Roomba-WIFI">
-                <Label>Connection:</Label>
-                <Title>Check Connection</Title>
-                <CallbackMethod>checkConnection</CallbackMethod>
-            </Field>
-            -->
+            
         </ConfigUI>
         <UiDisplayStateId>state</UiDisplayStateId>
         <States>
@@ -74,20 +78,24 @@
                 <ControlPageLabel>Battery level</ControlPageLabel>
             </State>
 
+            <State id="BatteryCondition" defaultValue="0.0">
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Battery condition (%)</TriggerLabel>
+                <ControlPageLabel>Battery condition</ControlPageLabel>
+            </State>
+
             <State id="LowPower" defaultValue="No">
                 <ValueType boolType="YesNo">Boolean</ValueType>
                 <TriggerLabel>Low power</TriggerLabel>
                 <ControlPageLabel>Low power</ControlPageLabel>
             </State>
 
-            
-
-
             <State id="Voltage" defaultValue="0.0">
                 <ValueType>Number</ValueType>
                 <TriggerLabel>Voltage</TriggerLabel>
                 <ControlPageLabel>Voltage</ControlPageLabel>
             </State>
+            
             <State id="Temperature" defaultValue="0.0">
                 <ValueType>Number</ValueType>
                 <TriggerLabel>Temperature (°)</TriggerLabel>
@@ -111,51 +119,85 @@
                 <ControlPageLabel>Charging state</ControlPageLabel>
                 <ControlPageLabelPrefix>Charging state is</ControlPageLabelPrefix>
             </State>
+            
             <State id="WheelDrop" defaultValue="false">
                 <ValueType boolType="YesNo">Boolean</ValueType>
                 <TriggerLabel>Wheel drop</TriggerLabel>
                 <ControlPageLabel>Wheel drop</ControlPageLabel>
             </State>
+            
             <State id="Dirt" defaultValue="false">
                 <ValueType boolType="YesNo">Boolean</ValueType>
                 <TriggerLabel>Dirt detected</TriggerLabel>
                 <ControlPageLabel>Dirt detected</ControlPageLabel>
             </State>
+            
             <State id="Cliff" defaultValue="false">
                <ValueType boolType="YesNo">Boolean</ValueType>
                 <TriggerLabel>Cliff detected</TriggerLabel>
                 <ControlPageLabel>Cliff detected</ControlPageLabel>
             </State>
+            
             <State id="Obstacle" defaultValue="false">
                <ValueType boolType="YesNo">Boolean</ValueType>
                 <TriggerLabel>Obstacle detected</TriggerLabel>
                 <ControlPageLabel>Obstacle detected</ControlPageLabel>
             </State>
+            
             <State id="VirtualWall" defaultValue="false">
                <ValueType boolType="YesNo">Boolean</ValueType>
                 <TriggerLabel>Virtual wall detected</TriggerLabel>
                 <ControlPageLabel>Virtual wall detected</ControlPageLabel>
             </State>
+            
              <State id="SearchingDock" defaultValue="false">
                <ValueType boolType="YesNo">Boolean</ValueType>
                 <TriggerLabel>Searching for Dock</TriggerLabel>
                 <ControlPageLabel>Searching for Dock</ControlPageLabel>
             </State>
+            
              <State id="HomebaseDetected" defaultValue="false">
                <ValueType boolType="YesNo">Boolean</ValueType>
                 <TriggerLabel>Home base detected</TriggerLabel>
                 <ControlPageLabel>Home base detected</ControlPageLabel>
             </State>
+            
             <State id="HomebaseNear" defaultValue="false">
                <ValueType boolType="YesNo">Boolean</ValueType>
                 <TriggerLabel>Near Home base</TriggerLabel>
                 <ControlPageLabel>Near Hombe base</ControlPageLabel>
             </State>
+            
             <State id="CheckBin" defaultValue="false">
                <ValueType boolType="YesNo">Boolean</ValueType>
                 <TriggerLabel>Check bin</TriggerLabel>
                 <ControlPageLabel>Check bin</ControlPageLabel>
             </State>
+           
+            <State id="CleaningTime" defaultValue="0">
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Cleaning Time last session</TriggerLabel>
+                <ControlPageLabel>Cleaning Time last session</ControlPageLabel>
+            </State>
+            
+            <State id="DirtDetected" defaultValue="0">
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Dirt detections last session</TriggerLabel>
+                <ControlPageLabel>Dirt detections last session</ControlPageLabel>
+            </State> 
+               
+            <State id="CleaningTimeTotal" defaultValue="0">
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Total Cleaning Time</TriggerLabel>
+                <ControlPageLabel>Total Cleaning Time</ControlPageLabel>
+            </State>
+            
+            <State id="CleaningDistance" defaultValue="0">
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Total Cleaning Distance</TriggerLabel>
+                <ControlPageLabel>Total Cleaning Distance</ControlPageLabel>
+            </State>
+                    
         </States>
     </Device>
 </Devices>

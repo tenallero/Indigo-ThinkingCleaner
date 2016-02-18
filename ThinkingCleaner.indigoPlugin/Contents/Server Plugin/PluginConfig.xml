@@ -1,9 +1,5 @@
 <?xml version="1.0"?>
-<PluginConfig>
-	<Field id="infoLabel" type="label">
-		<Label>ThinkingCleaner plugin</Label>
-	</Field>
-    <Field id="simpleSeparator1" type="separator"/>
+<PluginConfig>	
 	<Field id="pollingInterval" type="textfield" defaultValue="3" hidden="yes">
 		<Label>Polling Interval (sec):</Label>
 	</Field>
@@ -14,7 +10,15 @@
     <Field id="space2" type="label">
     	<Label/>
     </Field>
-	<Field type="checkbox" id="debugEnabled" defaultValue="false">
+	
+    <Field id="webhookEnabled" type="checkbox"  defaultValue="false">
+		<Label>Enable WebHook:</Label>
+		<Description>(This is an advanced feature in ThinkingCleaner web app)</Description>
+	</Field>
+    <Field id="webhookport" type="textfield" defaultValue="8686" visibleBindingId="webhookEnabled" visibleBindingValue="true">
+		<Label>WebHook listening port:</Label>
+	</Field>
+    <Field type="checkbox" id="debugEnabled" defaultValue="false">
 		<Label>Enable debugging:</Label>
 		<Description>(not recommended)</Description>
 	</Field>

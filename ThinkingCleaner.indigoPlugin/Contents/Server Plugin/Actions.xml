@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Actions>
-	<Action id="find" deviceFilter="self">
+	<Action id="findme" deviceFilter="self">
 		<Name>Find Roomba</Name>
 		<CallbackMethod>buttonFindMe</CallbackMethod>
 	</Action>
@@ -19,5 +19,13 @@
 	<Action id="dock" deviceFilter="self">
 		<Name>Return to Dock</Name>
 		<CallbackMethod>buttonDock</CallbackMethod>
+	</Action>
+    <Action id="leavehomebase" deviceFilter="self">
+		<Name>Leave Dock</Name>
+		<CallbackMethod>buttonLeaveHomeBase</CallbackMethod>
+	</Action>
+    <Action id="poweroff" deviceFilter="self">
+		<Name>Power off Roomba</Name>
+		<CallbackMethod>buttonPowerOff</CallbackMethod>
 	</Action>
 </Actions>
