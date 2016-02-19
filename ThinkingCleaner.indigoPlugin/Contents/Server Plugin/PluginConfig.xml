@@ -15,7 +15,7 @@
 		<Label>Enable WebHook:</Label>
 		<Description>(Check advanced features at ThinkingCleaner web app)</Description>
 	</Field>
-    <Field id="webhookport" type="textfield" defaultValue="8686" visibleBindingId="webhookEnabled" visibleBindingValue="true">
+    <Field id="webhookPort" type="textfield" defaultValue="8686" visibleBindingId="webhookEnabled" visibleBindingValue="true">
 		<Label>WebHook listening port:</Label>
 	</Field>
     <Field id="space3" type="label">
