@@ -10,10 +10,10 @@
             </Field>
             <Field id="portintro2" type="label" fontSize="small" fontColor="darkgray">
                 <Label>Follow the product instructions</Label>
-            </Field>
+            </Field>       
             
-            <Field id="portintro2b" type="label" fontSize="small" fontColor="darkgray">
-                <Label></Label>
+            <Field id="space1" type="label">
+    	       <Label/>
             </Field>
               
             <Field id="portintro3" type="label" fontSize="small" fontColor="darkgray">
@@ -23,12 +23,14 @@
                 <Label>Use your DHCP server for this.</Label>
             </Field>
             
-            <Field id="portintro5" type="label" fontSize="small" fontColor="darkgray">
-                <Label></Label>
+            
+            <Field id="space2" type="label">
+    	       <Label/>
             </Field>
 
             <Field id="simpleSeparator1" type="separator"/>
-             <Field id="discoveryButton" 
+            
+            <Field id="discoveryButton" 
                     type="button" 
                     tooltip="Click this button to start the automatic discovery process.">
                 <Label>You can discover devices using this button:</Label>
@@ -49,6 +51,11 @@
             </Field>
             <Field id="password" type="textfield" defaultValue="thinking" visibleBindingId="useAuthentication" visibleBindingValue="true">
                 <Label>Password:</Label>
+            </Field>
+            
+            
+            <Field id="space3" type="label">
+    	       <Label/>
             </Field>
             
         </ConfigUI>
