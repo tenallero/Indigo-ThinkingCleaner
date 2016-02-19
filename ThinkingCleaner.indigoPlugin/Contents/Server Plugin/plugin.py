@@ -200,7 +200,7 @@ class Plugin(indigo.PluginBase):
         if UserCancelled is False:
             indigo.server.log ("Preferences were updated, reloading Preferences...")
             if self.pluginPrefs.get('webhookEnabled',False):
-                if not (self.webhookPort == int(self.pluginPrefs.get('webhookPort',8686)):
+                if not (self.webhookPort == int(self.pluginPrefs.get('webhookPort',8686))):
                     indigo.server.log("New listen port configured, reload plugin for change to take effect",isError=True)
             self.loadPluginPrefs()
             
