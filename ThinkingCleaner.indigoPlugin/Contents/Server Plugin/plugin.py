@@ -26,58 +26,48 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 class httpHandler(BaseHTTPRequestHandler):
     def __init__(self, plugin,*args):
-        self.plugin = plugin
-        self.plugin.debugLog(u"WebHook: New httpHandler thread: "+threading.currentThread().getName()+", total threads: "+str(threading.activeCount()))
-        BaseHTTPRequestHandler.__init__(self,*args)
-             
-    def triggerEvent(self,eventType,deviceAddress):
-        self.plugin.debugLog(u"WebHook: triggerEvent called")      
-
+        try:
+            self.plugin = plugin
+            self.plugin.debugLog(u"WebHook: New httpHandler thread: "+threading.currentThread().getName()+", total threads: "+str(threading.activeCount()))
+            BaseHTTPRequestHandler.__init__(self,*args)
+        except Exception, e:
+            self.plugin.errorLog(u"WebHook: Error: " + str(e))
+ 
     def do_GET(self):             
         self.receivedMessage()
       
     def do_POST(self):         
         self.receivedMessage()
             
-    def receivedMessage(self):
-        self.send_response(200)
-        self.end_headers()
-        try:        
-            ipaddress = str(self.headers.getheader('Local-Ip'))
-            if ipaddress == 'None':
-                ipaddress = str(self.headers.getheader('REMOTE_ADDR'))
-                pass
-            self.plugin.debugLog(u"WebHook: Received HTTP GET from " + ipaddress)
+    def receivedMessage(self):    
+        try:
+            self.send_response(200)
+            self.end_headers()       
+            ipaddress = str(self.headers.getheader('Local-Ip'))     
             if not ipaddress == 'None': 
+                self.plugin.debugLog(u"WebHook: Received HTTP request from '" + ipaddress + "'")      
                 self.plugin.sensorUpdateFromWebhook(ipaddress)
+            else:
+                self.plugin.debugLog(u"WebHook: Received HTTP request from an unknow device")      
         except Exception, e:
             self.plugin.errorLog(u"WebHook: Error: " + str(e))
-            pass            
-
-
 
 class Plugin(indigo.PluginBase):
-
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
 
         # Timeout
         self.reqTimeout = 8
-
         # Pooling
         self.pollingInterval = 2
-
         # Flag buttonRequest is processing
         self.reqRunning = False
-
         # create empty device list
         self.deviceList = {}
         self.discoveredList = []
-
         # WebHook
         webhookEnabled = False
         webhookPort = 0
-
         self.sock = None
         self.socketBufferSize = 256
         # install authenticating opener
@@ -266,20 +256,26 @@ class Plugin(indigo.PluginBase):
    
     def startWebhook(self):
         if self.webhookEnabled:
-            self.myThread = threading.Thread(target=self.listenHTTP, args=())
-            self.myThread.daemon = True
-            self.myThread.start() 
+            try:  
+                self.myThread = threading.Thread(target=self.listenHTTP, args=())
+                self.myThread.daemon = True
+                self.myThread.start() 
+            except Exception, e:
+                self.plugin.errorLog(u"WebHook: Error: " + str(e))
      
     def listenHTTP(self):
-        self.debugLog(u"Starting HTTP listener thread")
-        indigo.server.log(u"Listening on TCP port " + str(self.webhookPort))
-        self.server = ThreadedHTTPServer(('', self.webhookPort), lambda *args: httpHandler(self, *args))
-        self.server.serve_forever()
+        self.debugLog(u"WebHook: Starting HTTP listener on port " + str(self.webhookPort))
+        try:        
+            self.server = ThreadedHTTPServer(('', self.webhookPort), lambda *args: httpHandler(self, *args))
+            self.server.serve_forever()
+        except Exception, e:
+            self.plugin.errorLog(u"WebHook: Error: " + str(e))
       
-    def sensorUpdateFromWebhook (self,address):
-        self.debugLog(u"WebHook: Notification from address '" + address + "'")
+    def sensorUpdateFromWebhook (self,address):        
         for deviceId in self.deviceList:
             if self.deviceList[deviceId]['address'] == address:
+                device = indigo.devices[deviceId]
+                self.debugLog(u"WebHook: The request comes from '" + device.name + "' device")
                 self.sensorUpdate(indigo.devices[deviceId], False)
                 
     ###################################################################
@@ -308,10 +304,7 @@ class Plugin(indigo.PluginBase):
                                 pollingInterval = 120
                             nextTimeSensor = lastTimeSensor + datetime.timedelta(seconds=pollingInterval)
 
-                            if nextTimeSensor <= todayNow:
-                                #self.debugLog("Thread. Roomba State = " + str(state))
-                                #self.debugLog("Thread. Pooling interval = " + str(pollingInterval))
-                                #self.deviceList[deviceId]['lastTimeSensor'] = todayNow
+                            if nextTimeSensor <= todayNow:  
                                 if self.reqRunning == False:
                                     self.sensorUpdateFromThread(indigo.devices[deviceId])
 
