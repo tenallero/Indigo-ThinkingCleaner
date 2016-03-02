@@ -120,7 +120,7 @@ class Plugin(indigo.PluginBase):
         self.debugLog(u"shutdown called")
 
     def deviceCreated(self, device):
-        self.debugLog(u"Created device of type \"%s\"" % device.deviceTypeId)
+        indigo.server.log (u"Created new device \"%s\" of type \"%s\"" % (device.name, device.deviceTypeId))
 
     def loadPluginPrefs(self):
         # set debug option
@@ -237,55 +237,91 @@ class Plugin(indigo.PluginBase):
     # Device discovery
     ###################################################################
 
-   def deviceDiscover (self):
-        indigo.server.log ("Device discovering ...")
+    def deviceDiscover (self):
+        totalDiscovered = 0
+        totalCreated = 0
+        totalModified = 0
+        totalNotModified = 0
+        duplicated = 0
+        existingList = {}
+        
+        indigo.server.log ("Discovering devices in this LAN ...")
         self.getDeviceDiscoverList()
-        if len(self.discoveredList) > 0:
-            indigo.server.log (str(len(self.discoveredList)) + " devices found.")
-        else:
+        totalDiscovered = len(self.discoveredList)
+        if not totalDiscovered > 0:    
             indigo.server.log ("It was not found any device. Sorry.")
             return
+            
+        #existingList = indigo.devices(filter="self.thinkingcleaner")    
         for discovered in self.discoveredList:
-            found   = False
-            device  = None
-            for deviceId in self.deviceList:
-                if deviceId in indigo.devices:
-                    device = indigo.devices[deviceId]
-                    
-                    if device.pluginProps["uuid"] == discovered['uuid']:
-                        found = True
-                        devProps = device.pluginProps
+            found    = False
+            modified = False
+            device   = None
+            for device in indigo.devices.itervalues(filter="self.thinkingcleaner"):              
+                if device.pluginProps["uuid"] == discovered['uuid']:
+                    found = True
+                    devProps = device.pluginProps
+                    if not devProps["address"] == discovered['local_ip']:
                         devProps["address"] = discovered['local_ip']
                         devProps["tcdevicetype"] = discovered['device_type']
                         #devProps["autodiscovered"] = False
                         device.replacePluginPropsOnServer(devProps)
                         
+                        modified = True
+                        indigo.server.log ('Updated existing device "' + device.name + '"')
+                       
             if not found:
-                for deviceId in self.deviceList:
-                    if deviceId in indigo.devices:    
-                        device = indigo.devices[deviceId]
-                        if device.pluginProps["address"] == discovered['local_ip']:
-                            found = True
-            if found:
-                pass
-            else:
+                for device in indigo.devices.itervalues(filter="self.thinkingcleaner"):   
+                    if device.pluginProps["address"] == discovered['local_ip']:
+                        found = True
+            if not found:             
                 deviceFolderName = "ThinkingCleaner"
-                if (self.deviceFolderName not in indigo.devices.folders):
+                if (deviceFolderName not in indigo.devices.folders):
                     newFolder = indigo.devices.folder.create(deviceFolderName)
                     indigo.devices.folder.displayInRemoteUI(newFolder, value=False)
+                    indigo.server.log ('Created new device folder "ThinkingCleaner"')
                 deviceFolderId = indigo.devices.folders.getId(deviceFolderName)
-                
+                seedName = discovered['name'] + '-' + discovered['uuid']
+                fullName = seedName
+                while True:                    
+                    if not self.deviceNameExists(fullName):
+                        break
+                    duplicated += 1
+                    fullName = seedName + ' (' + str(duplicated) + ')'
+                    
                 device = indigo.device.create(protocol=indigo.kProtocol.Plugin,
                                 address=discovered['local_ip'],
-                                name=discovered['name'] + '-' + discovered['uuid'] , 
+                                name=fullName , 
                                 description='ThinkingCleaner discovered device', 
                                 pluginId="com.tenallero.indigoplugin.thinkingcleaner",
                                 deviceTypeId="thinkingcleaner",
                                 props={"uuid":discovered['uuid'], "tcdevicetype":discovered['device_type'], "autodiscovered": True},
-                                folder=self.deviceFolderId)        
-
+                                folder=deviceFolderId)
+                self.deviceStartComm (device)
+                totalCreated += 1
+            else:
+               if modified:
+                   totalModified += 1
+               else:
+                   totalNotModified += 1
+                
+        indigo.server.log (str(totalDiscovered) + " ThinkingCleaner devices discovered.")
+        if totalCreated > 0:
+            indigo.server.log (str(totalCreated) + " new indigo devices created.")
+        if totalModified > 0:
+            indigo.server.log (str(totalModified) + " existing indigo devices updated.")
+        if totalNotModified > 0: 
+            indigo.server.log (str(totalNotModified) + " existing indigo devices not updated.")
+            
+    def deviceNameExists (self,name):
+        nameFound = False
+        for device in indigo.devices:
+            if device.name == name:
+                nameFound = True
+                break
+        return nameFound
+                                           
     def getDeviceDiscoverList (self):        
-        self.debugLog("Discovering devices in this LAN")
         try: 
             payloadJson = urllib2.urlopen("https://thinkingsync.com/api/v1/discover/devices").read()
             if payloadJson is None:
@@ -294,8 +330,6 @@ class Plugin(indigo.PluginBase):
             else:
                 # json == [{"local_ip":"172.30.74.81","uuid":"1976bb832ad681c7","name":"Roomba","device_type":"tc500"}]
                 self.discoveredList = json.loads(payloadJson)
-                self.debugLog("Discovered " + str(len(self.discoveredList)) + " devices")
-                
         except Exception, e:    
             self.debugLog("Discovering devices: Error: " + str(e))  
             return False
@@ -335,7 +369,6 @@ class Plugin(indigo.PluginBase):
     ###################################################################
 
     def runConcurrentThread(self):
-
         self.debugLog(u"Starting polling thread")
         try:
             while True:
@@ -378,6 +411,10 @@ class Plugin(indigo.PluginBase):
     ###################################################################
 
     def sendRequest(self, device, urlAction):
+        if device.id not in self.deviceList:
+            self.debugLog("Requesting status. Invalid device")
+            return False
+            
         self.reqRunning = True
         requestTrial = 0
         requestMax   = 3
@@ -461,7 +498,16 @@ class Plugin(indigo.PluginBase):
         payloadJson = ""
         theUrl  = ""
 
-
+        
+        if device == None:
+            self.debugLog("Requesting status. Invalid device")
+            return False
+        
+        if device.id not in self.deviceList:
+            self.debugLog("Requesting status. Invalid device")
+            return False
+            
+            
         todayNow = datetime.datetime.now()
         self.deviceList[device.id]['lastTimeSensor'] = todayNow
 
@@ -701,10 +747,10 @@ class Plugin(indigo.PluginBase):
             device.updateStateOnServer("onOffState", False)
     
         uuid   = payloadDict ['firmware']['uuid']
-        tctype = payloadDict ['tc_status']['modelnr"] 
-        dhcp   = int(payloadDict ['firmware']['DHCP'])
+        tctype = payloadDict ['tc_status']['modelnr'] 
+        
         otherSameUuid = False
-        if not device["uuid"]:
+        if not device.pluginProps["uuid"]:
             for other in self.deviceList:
                 if self.deviceList[other]['uuid'] == uuid:
                      otherSameUuid = True            
@@ -870,8 +916,7 @@ class Plugin(indigo.PluginBase):
         self.deviceDiscover()
         return
         
-    def checkPluginUpdates(self):
-        pass
+    def checkPluginUpdates(self):        
         indigo.server.log("Check for plugin updates ...")
         return    
         

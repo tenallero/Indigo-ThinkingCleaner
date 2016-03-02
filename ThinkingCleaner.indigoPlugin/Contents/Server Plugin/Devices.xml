@@ -45,7 +45,7 @@
                 <Description>Enter the IP address for this device</Description>
             </Field>
 
-            <Field id="uuid" type="textfield" readonly="YES" visibleBindingId="autodiscovered" visibleBindingValue="true">
+            <Field id="uuid" type="textfield" readonly="YES">
                 <Label>UUID:</Label>
                 <Description>TC identification</Description>
             </Field>
@@ -55,9 +55,9 @@
                 <Description>TC device type</Description>
             </Field>
 
-             <Field id="autodiscovered" type="checkbox" defaultValue="false" readonly="YES" hidden="true">
+             <Field id="autodiscovered" type="checkbox" defaultValue="false" readonly="YES" visibleBindingId="autodiscovered" visibleBindingValue="true">
                 <Label>Autodiscovered:</Label>
-                <Description>Discovered automatically</Description>
+                <Description>It was discovered automatically</Description>
             </Field>
             
             <Field id="useAuthentication" type="checkbox" defaultValue="false" hidden="true">

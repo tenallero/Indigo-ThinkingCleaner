@@ -1,8 +1,7 @@
 <?xml version="1.0"?>
 <MenuItems>
     <MenuItem id="menuDeviceDiscovery">
-		<Name>Discover device</Name>
-		<ConfigUI actionId="setTimerStartValue"/>
+		<Name>Discover devices</Name>		
         <CallbackMethod>menuDeviceDiscovery</CallbackMethod>
 	</MenuItem>
     <MenuItem id="toggleDebugging">
@@ -10,7 +9,7 @@
         <CallbackMethod>toggleDebugging</CallbackMethod>
 	</MenuItem>
     <MenuItem id="checkForUpdates">
-        <Name>Check for Plugin Updates...</Name>
+        <Name>Check for Plugin Updates</Name>
         <CallbackMethod>checkPluginUpdates</CallbackMethod>
     </MenuItem>
 </MenuItems>
