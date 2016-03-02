@@ -40,22 +40,33 @@
             </Field>
             -->
             
+            <Field id="autodiscovered_label" type="label"  visibleBindingId="autodiscovered" visibleBindingValue="true">
+                <Label>This device was created using "discover devices" process.</Label>
+            </Field>
+            <Field id="autodiscovered_separator" type="separator" visibleBindingId="autodiscovered" visibleBindingValue="true"/>
+             
             <Field id="address" type="textfield" enabledBindingId="autodiscovered" enabledBindingNegate="true">
                 <Label>IP Address:</Label>
                 <Description>Enter the IP address for this device</Description>
             </Field>
 
-            <Field id="uuid" type="textfield" readonly="YES">
+            <Field id="uuid" type="textfield" readonly="YES" visibleBindingId="autodiscovered" visibleBindingValue="true">
                 <Label>UUID:</Label>
                 <Description>TC identification</Description>
             </Field>
 
+            
+            <Field id="tcname" type="textfield" readonly="YES" visibleBindingId="autodiscovered" visibleBindingValue="true">
+                <Label>Name:</Label>
+                <Description>TC name</Description>
+            </Field>
+             
             <Field id="tcdevicetype" type="textfield" readonly="YES" visibleBindingId="autodiscovered" visibleBindingValue="true">
                 <Label>Type:</Label>
                 <Description>TC device type</Description>
             </Field>
-
-             <Field id="autodiscovered" type="checkbox" defaultValue="false" readonly="YES" visibleBindingId="autodiscovered" visibleBindingValue="true">
+            
+             <Field id="autodiscovered" type="checkbox" defaultValue="false" readonly="YES" hidden="true">
                 <Label>Autodiscovered:</Label>
                 <Description>It was discovered automatically</Description>
             </Field>

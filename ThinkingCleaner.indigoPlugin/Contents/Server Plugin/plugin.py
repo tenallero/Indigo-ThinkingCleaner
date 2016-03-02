@@ -92,8 +92,13 @@ class Plugin(indigo.PluginBase):
             devProps["uuid"] = ""
             devProps["tcdevicetype"] = ""
             devProps["autodiscovered"] = False
+            devProps["tcname"] = ""
             device.replacePluginPropsOnServer(devProps)
-            
+        if not device.pluginProps.has_key("tcname"):
+            devProps = device.pluginProps
+            devProps["tcname"] = ""
+            device.replacePluginPropsOnServer(devProps)
+              
         if device.id not in self.deviceList:
             self.deviceList[device.id] = {'ref':device, 'address': device.pluginProps["address"], 'uuid': device.pluginProps["uuid"], 'lastTimeSensor':datetime.datetime.now(), 'lastTimeUpdate':datetime.datetime.now()}
             if device.pluginProps.has_key("useAuthentication") and device.pluginProps["useAuthentication"]:
@@ -262,10 +267,11 @@ class Plugin(indigo.PluginBase):
                 if device.pluginProps["uuid"] == discovered['uuid']:
                     found = True
                     devProps = device.pluginProps
-                    if not devProps["address"] == discovered['local_ip']:
+                    if not devProps["address"] == discovered['local_ip'] or not devProps["tcname"] == discovered['name']:
                         devProps["address"] = discovered['local_ip']
                         devProps["tcdevicetype"] = discovered['device_type']
-                        #devProps["autodiscovered"] = False
+                        devProps["tcname"] = discovered['name']
+                        devProps["autodiscovered"] = True
                         device.replacePluginPropsOnServer(devProps)
                         
                         modified = True
@@ -296,7 +302,7 @@ class Plugin(indigo.PluginBase):
                                 description='ThinkingCleaner discovered device', 
                                 pluginId="com.tenallero.indigoplugin.thinkingcleaner",
                                 deviceTypeId="thinkingcleaner",
-                                props={"uuid":discovered['uuid'], "tcdevicetype":discovered['device_type'], "autodiscovered": True},
+                                props={"uuid":discovered['uuid'], "tcdevicetype":discovered['device_type'],  "tcname":discovered['name'], "autodiscovered": True},
                                 folder=deviceFolderId)
                 self.deviceStartComm (device)
                 totalCreated += 1
