@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <Actions>
+    <SupportURL>https://github.com/tenallero/Indigo-ThinkingCleaner/wiki/Usage</SupportURL>
 	<Action id="findme" deviceFilter="self">
 		<Name>Find Roomba</Name>
 		<CallbackMethod>buttonFindMe</CallbackMethod>

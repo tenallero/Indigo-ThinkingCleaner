@@ -4,32 +4,33 @@
     <Device type="relay" id="thinkingcleaner">
         <Name>ThinkingCleaner Device</Name>
         <ConfigUI>
-            
-            <Field id="portintro1" type="label" fontSize="small" fontColor="darkgray">
+            <SupportURL>https://github.com/tenallero/Indigo-ThinkingCleaner/wiki/Device-configuration</SupportURL>
+            <Field id="portintro1" type="label" fontSize="small" fontColor="darkgray"  visibleBindingId="autodiscovered" visibleBindingValue="false">
                 <Label>First, you must configure the ThinkingCleaner device and connect it to this LAN. </Label>
             </Field>
-            <Field id="portintro2" type="label" fontSize="small" fontColor="darkgray">
+            <Field id="portintro2" type="label" fontSize="small" fontColor="darkgray" visibleBindingId="autodiscovered" visibleBindingValue="false">
                 <Label>Follow the product instructions</Label>
             </Field>       
             
-            <Field id="space1" type="label">
+            <Field id="space1" type="label" visibleBindingId="autodiscovered" visibleBindingValue="false">
     	       <Label/>
             </Field>
               
-            <Field id="portintro3" type="label" fontSize="small" fontColor="darkgray">
+            <Field id="portintro3" type="label" fontSize="small" fontColor="darkgray" visibleBindingId="autodiscovered" visibleBindingValue="false">
                 <Label>Please, assign a static IP address to your ThinkingCleaner device.</Label>
             </Field>
-            <Field id="portintro4" type="label" fontSize="small" fontColor="darkgray">
+            <Field id="portintro4" type="label" fontSize="small" fontColor="darkgray" visibleBindingId="autodiscovered" visibleBindingValue="false">
                 <Label>Use your DHCP server for this.</Label>
             </Field>
             
             
-            <Field id="space2" type="label">
+            <Field id="space2" type="label" visibleBindingId="autodiscovered" visibleBindingValue="false">
     	       <Label/>
             </Field>
 
-            <Field id="simpleSeparator1" type="separator"/>
+            <Field id="simpleSeparator1" type="separator" visibleBindingId="autodiscovered" visibleBindingValue="false"/>
             
+            <!--
             <Field id="discoveryButton" 
                     type="button" 
                     tooltip="Click this button to start the automatic discovery process.">
@@ -37,12 +38,28 @@
                 <Title>Discover Now!</Title>
                 <CallbackMethod>deviceDiscoverUI</CallbackMethod>                
             </Field>
-
-            <Field id="address" type="textfield">
+            -->
+            
+            <Field id="address" type="textfield" enabledBindingId="autodiscovered" enabledBindingNegate="true">
                 <Label>IP Address:</Label>
                 <Description>Enter the IP address for this device</Description>
             </Field>
 
+            <Field id="uuid" type="textfield" readonly="YES" visibleBindingId="autodiscovered" visibleBindingValue="true">
+                <Label>UUID:</Label>
+                <Description>TC identification</Description>
+            </Field>
+
+            <Field id="tcdevicetype" type="textfield" readonly="YES" visibleBindingId="autodiscovered" visibleBindingValue="true">
+                <Label>Type:</Label>
+                <Description>TC device type</Description>
+            </Field>
+
+             <Field id="autodiscovered" type="checkbox" defaultValue="false" readonly="YES" hidden="true">
+                <Label>Autodiscovered:</Label>
+                <Description>Discovered automatically</Description>
+            </Field>
+            
             <Field id="useAuthentication" type="checkbox" defaultValue="false" hidden="true">
                 <Label>Use authentication:</Label>
             </Field>
