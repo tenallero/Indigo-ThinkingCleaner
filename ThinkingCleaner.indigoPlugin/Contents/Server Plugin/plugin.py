@@ -43,10 +43,11 @@ class httpHandler(BaseHTTPRequestHandler):
         try:
             self.send_response(200)
             self.end_headers()       
-            ipaddress = str(self.headers.getheader('Local-Ip'))     
+            ipaddress = str(self.headers.getheader('Local-Ip'))   
+            uuid      = str(self.headers.getheader('Uuid'))  
             if not ipaddress == 'None': 
                 self.plugin.debugLog(u"WebHook: Received HTTP request from '" + ipaddress + "'")      
-                self.plugin.sensorUpdateFromWebhook(ipaddress)
+                self.plugin.sensorUpdateFromWebhook(ipaddress,uuid)
             else:
                 self.plugin.debugLog(u"WebHook: Received HTTP request from an unknow device")      
         except Exception, e:
@@ -199,7 +200,7 @@ class Plugin(indigo.PluginBase):
             
     def closedDeviceConfigUi(self, valuesDict, userCancelled, typeId, devId):
         if userCancelled is False:
-            indigo.server.log ("Device preferences were updated.")
+            indigo.server.log ("Device settings were updated.")
             
     def deviceDiscoverUI(self, valuesDict, typeId, devId):
         validAddress=False
@@ -357,13 +358,33 @@ class Plugin(indigo.PluginBase):
         except Exception, e:
             self.plugin.errorLog(u"WebHook: Error: " + str(e))
       
-    def sensorUpdateFromWebhook (self,address):        
+    def sensorUpdateFromWebhook (self,address,uuid): 
+        found = False       
         for deviceId in self.deviceList:
             if self.deviceList[deviceId]['address'] == address:
                 device = indigo.devices[deviceId]
                 self.debugLog(u"WebHook: The request comes from '" + device.name + "' device")
                 self.sensorUpdate(indigo.devices[deviceId], False)
-                
+                found = True
+                break
+        if not found:
+            for device in indigo.devices.itervalues(filter="self.thinkingcleaner"): 
+                devProps = device.pluginProps
+                if devProps["uuid"] == uuid and devProps["address"] != address:
+                    oldValue = devProps["address"]
+                    devProps["address"] = address
+                    device.replacePluginPropsOnServer(devProps)
+                    for deviceId in self.deviceList:
+                        if self.deviceList[deviceId]['uuid'] == uuid:
+                            self.deviceList[deviceId]['address'] = address
+                            found = True
+                            break
+                    
+                    indigo.server.log ('Updated address for existing device "' + device.name + '". From ' + oldValue + ' to ' + address)
+                    self.sensorUpdate(device, False)
+                    break
+        
+                    
     ###################################################################
     # Concurrent Thread
     ###################################################################
