@@ -21,6 +21,10 @@
 		<Label>WebHook listening port:</Label>
 	</Field>
     
+    <Field id="webhookDiscovery" type="checkbox"  defaultValue="false" visibleBindingId="webhookEnabled" visibleBindingValue="true">
+		<Label>WebHook discovery:</Label>
+	</Field>
+    
     <Field id="space3" type="label">
     	<Label/>
     </Field>

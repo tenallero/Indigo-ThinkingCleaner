@@ -29,17 +29,7 @@
             </Field>
 
             <Field id="simpleSeparator1" type="separator" visibleBindingId="autodiscovered" visibleBindingValue="false"/>
-            
-            <!--
-            <Field id="discoveryButton" 
-                    type="button" 
-                    tooltip="Click this button to start the automatic discovery process.">
-                <Label>You can discover devices using this button:</Label>
-                <Title>Discover Now!</Title>
-                <CallbackMethod>deviceDiscoverUI</CallbackMethod>                
-            </Field>
-            -->
-            
+    
             <Field id="autodiscovered_label" type="label"  visibleBindingId="autodiscovered" visibleBindingValue="true">
                 <Label>This device was created using "discover devices" process.</Label>
             </Field>
@@ -70,18 +60,7 @@
                 <Label>Autodiscovered:</Label>
                 <Description>It was discovered automatically</Description>
             </Field>
-            
-            <Field id="useAuthentication" type="checkbox" defaultValue="false" hidden="true">
-                <Label>Use authentication:</Label>
-            </Field>
-            <Field id="username" type="textfield" defaultValue="admin" visibleBindingId="useAuthentication" visibleBindingValue="true">
-                <Label>Username:</Label>
-            </Field>
-            <Field id="password" type="textfield" defaultValue="thinking" visibleBindingId="useAuthentication" visibleBindingValue="true">
-                <Label>Password:</Label>
-            </Field>
-            
-            
+
             <Field id="space3" type="label">
     	       <Label/>
             </Field>

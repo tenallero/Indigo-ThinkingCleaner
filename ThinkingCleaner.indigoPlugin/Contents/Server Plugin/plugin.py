@@ -45,10 +45,15 @@ class httpHandler(BaseHTTPRequestHandler):
             self.end_headers()       
             ipaddress = str(self.headers.getheader('Local-Ip'))   
             uuid      = str(self.headers.getheader('Uuid')) 
-            
+            name      = str(self.headers.getheader('Device-Name'))
             if not ipaddress == 'None': 
-                self.plugin.debugLog(u"WebHook: Received HTTP request from '" + ipaddress + "'")      
-                self.plugin.sensorUpdateFromWebhook(ipaddress,uuid)
+                self.plugin.debugLog(u"WebHook: Received HTTP request from '" + ipaddress + "'")  
+                hookSource = {"ipaddress":ipaddress,
+                    "uuid":uuid,
+                    "name":name,
+                    "device_type":""}
+                    
+                self.plugin.sensorUpdateFromWebhook(hookSource) 
             else:
                 self.plugin.debugLog(u"WebHook: Received HTTP request from an unknow device")      
         except Exception, e:
@@ -60,6 +65,10 @@ class Plugin(indigo.PluginBase):
 
         # Timeout
         self.reqTimeout = 8
+         # Pooling interval
+        self.pollingIntervalDock = 120
+        self.pollingIntervalClean = 30
+        
         # Pooling
         self.pollingInterval = 2
         # Flag buttonRequest is processing
@@ -68,15 +77,15 @@ class Plugin(indigo.PluginBase):
         self.deviceList = {}
         self.discoveredList = []
         # WebHook
-        webhookEnabled = False
-        webhookPort = 0
+        self.webhookEnabled = False
+        self.webhookDiscovery = False
+        self.webhookPort = 0
         self.sock = None
         self.socketBufferSize = 256
-        # install authenticating opener
-        self.passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        authhandler = urllib2.HTTPBasicAuthHandler(self.passman)
-        opener = urllib2.build_opener(authhandler)
-        urllib2.install_opener(opener)
+        # Discovery
+        self.discoveryWorking = False
+ 
+       
 
     def __del__(self):
         indigo.PluginBase.__del__(self)
@@ -87,10 +96,7 @@ class Plugin(indigo.PluginBase):
 
     def deviceCleanForDebug(self,device):
         devProps = device.pluginProps
-        devProps["uuid"] = ""
-        devProps["tcdevicetype"] = ""
-        devProps["autodiscovered"] = False
-        devProps["tcname"] = ""
+        devProps.update({"uuid":"","address":"172.30.74.83","tcname":"","tcdevicetype":"","autodiscovered":False})
         device.replacePluginPropsOnServer(devProps)
         
     def deviceStartComm(self, device):
@@ -114,8 +120,6 @@ class Plugin(indigo.PluginBase):
     def deviceAddList(self, device):             
         if device.id not in self.deviceList:
             self.deviceList[device.id] = {'ref':device, 'address': device.pluginProps["address"], 'uuid': device.pluginProps["uuid"], 'lastTimeSensor':datetime.datetime.now(), 'lastTimeUpdate':datetime.datetime.now()}
-            if device.pluginProps.has_key("useAuthentication") and device.pluginProps["useAuthentication"]:
-                self.passman.add_password(None, u"http://" + device.pluginProps["address"], device.pluginProps["username"], device.pluginProps["password"])
             self.sensorUpdateFromRequest(device)
 
     def deviceStopComm(self,device):
@@ -130,10 +134,6 @@ class Plugin(indigo.PluginBase):
         self.reqRunning = False
         socket.setdefaulttimeout(self.reqTimeout)        
         self.startWebhook()
-        
-
-        #self.debugLog("Pooling Interval: " + str(self.pollingInterval))
-        #self.debugLog("Request Timeout: " + str(self.reqTimeout))
 
     def shutdown(self):
         self.debugLog(u"shutdown called")
@@ -143,7 +143,9 @@ class Plugin(indigo.PluginBase):
 
     def deviceDeleted(self, device):
         indigo.server.log (u"Deleted device \"%s\" of type \"%s\"" % (device.name, device.deviceTypeId))
-        
+        if device.id in self.deviceList:
+             del self.deviceList[device.id]
+             
     def loadPluginPrefs(self):
         # set debug option
         if 'debugEnabled' in self.pluginPrefs:
@@ -156,23 +158,15 @@ class Plugin(indigo.PluginBase):
         else:
             self.webhookEnabled = False
             
+            
         if self.webhookEnabled:
             self.webhookPort   = int (self.pluginPrefs.get('webhookPort',8686))
+            self.webhookDiscovery = self.pluginPrefs.get('webhookDiscovery',False)
         else:
             self.webhookPort = 0
-
-        self.pollingInterval = 0
-        self.reqTimeout = 0
-
-        #if self.pluginPrefs.has_key("pollingInterval"):
-        #   self.pollingInterval = int(self.pluginPrefs["pollingInterval"])
-        #if self.pollingInterval <= 0:
-        #   self.pollingInterval = 30
-
-        #if self.pluginPrefs.has_key("reqTimeout"):
-        #   self.reqTimeout = int(self.pluginPrefs['reqTimeout'])
-        #if self.reqTimeout <= 0:
-        #   self.reqTimeout = 8
+            self.webhookDiscovery = False
+            
+       
 
         self.reqTimeout = 8   
 
@@ -191,13 +185,7 @@ class Plugin(indigo.PluginBase):
         if self.validateAddress (ipAdr) == False:           
             errorsDict['address'] = u"This needs to be a valid IP address."
             return (False, valuesDict, errorsDict)
-        if (valuesDict['useAuthentication']):
-            if not(valuesDict[u'username']>""):                
-                errorsDict['username'] = u"Must be filled."
-                return (False, valuesDict, errorsDict)
-            if not(valuesDict['password']>""):               
-                errorsDict['password'] = u"Must be filled."
-                return (False, valuesDict, errorsDict)
+        
         return (True, valuesDict)
 
     def validatePrefsConfigUi(self, valuesDict):
@@ -224,6 +212,8 @@ class Plugin(indigo.PluginBase):
             indigo.server.log ("Device settings were updated.")
             
     def deviceDiscoverUI(self, valuesDict, typeId, devId):
+        if self.discoveryWorking:
+            return valuesDict 
         validAddress=False
         actualAddress=valuesDict[u'address'].strip()  
         valuesDict[u'address'] = actualAddress
@@ -245,6 +235,8 @@ class Plugin(indigo.PluginBase):
         return valuesDict
         
     def pluginDiscoverUI(self, valuesDict): 
+        if self.discoveryWorking:
+            return valuesDict 
         self.deviceDiscover()
         return valuesDict   
       
@@ -267,11 +259,17 @@ class Plugin(indigo.PluginBase):
         duplicated = 0
         existingList = {}
         
+        if self.discoveryWorking:
+            indigo.server.log (u"Other discovery process is running now.")
+            return
+            
+        self.discoveryWorking = True
         indigo.server.log ("Discovering devices in this LAN ...")
         self.getDeviceDiscoverList()
         totalDiscovered = len(self.discoveredList)
         if not totalDiscovered > 0:    
             indigo.server.log ("It was not found any device. Sorry.")
+            self.discoveryWorking = False
             return
             
         #existingList = indigo.devices(filter="self.thinkingcleaner")    
@@ -297,29 +295,12 @@ class Plugin(indigo.PluginBase):
                 for device in indigo.devices.itervalues(filter="self.thinkingcleaner"):   
                     if device.pluginProps["address"] == discovered['local_ip']:
                         found = True
-            if not found:             
-                deviceFolderName = "ThinkingCleaner"
-                if (deviceFolderName not in indigo.devices.folders):
-                    newFolder = indigo.devices.folder.create(deviceFolderName)
-                    indigo.devices.folder.displayInRemoteUI(newFolder, value=False)
-                    indigo.server.log ('Created new device folder "ThinkingCleaner"')
-                deviceFolderId = indigo.devices.folders.getId(deviceFolderName)
-                seedName = discovered['name'] + '-' + discovered['uuid']
-                fullName = seedName
-                while True:                    
-                    if not self.deviceNameExists(fullName):
-                        break
-                    duplicated += 1
-                    fullName = seedName + ' (' + str(duplicated) + ')'
-                    
-                device = indigo.device.create(protocol=indigo.kProtocol.Plugin,
-                                address=discovered['local_ip'],
-                                name=fullName , 
-                                description='ThinkingCleaner discovered device', 
-                                pluginId="com.tenallero.indigoplugin.thinkingcleaner",
-                                deviceTypeId="thinkingcleaner",
-                                props={"uuid":discovered['uuid'], "tcdevicetype":discovered['device_type'],  "tcname":discovered['name'], "autodiscovered": True},
-                                folder=deviceFolderId)
+            if not found:  
+                newProps = {"ipaddress":discovered['local_ip'],
+                    "uuid":discovered['uuid'],
+                    "name":discovered['name'],
+                    "device_type":discovered['device_type']}
+                device = self.createdDiscoveredDevice(newProps)
                 self.deviceAddList (device)
                 totalCreated += 1
             else:
@@ -335,7 +316,45 @@ class Plugin(indigo.PluginBase):
             indigo.server.log (str(totalModified) + " existing indigo devices updated.")
         if totalNotModified > 0: 
             indigo.server.log (str(totalNotModified) + " existing indigo devices not updated.")
-            
+        self.discoveryWorking = False
+    
+    def createdDiscoveredDevice(self,props):
+        deviceFolderId = self.getDiscoveryFolder()
+        fullName = self.getDiscoveryDeviceName (props['name'],props['uuid'])
+        device = indigo.device.create(protocol=indigo.kProtocol.Plugin,
+                        address=props['ipaddress'],
+                        name=fullName , 
+                        description='ThinkingCleaner discovered device', 
+                        pluginId="com.tenallero.indigoplugin.thinkingcleaner",
+                        deviceTypeId="thinkingcleaner",
+                        props={"uuid":props['uuid'], "tcdevicetype":props['device_type'],  "tcname":props['name'], "autodiscovered": True},
+                        folder=deviceFolderId)
+        self.deviceAddList (device)
+        return device
+        
+        
+    def getDiscoveryFolder (self):
+        deviceFolderName = "ThinkingCleaner"
+        if (deviceFolderName not in indigo.devices.folders):
+            newFolder = indigo.devices.folder.create(deviceFolderName)
+            indigo.devices.folder.displayInRemoteUI(newFolder, value=False)
+            indigo.server.log ('Created new device folder "ThinkingCleaner"')
+        deviceFolderId = indigo.devices.folders.getId(deviceFolderName)
+        return deviceFolderId
+        
+    def getDiscoveryDeviceName(self,name,uuid):
+        if not self.deviceNameExists(name):
+            return name
+        seedName = name + '-' + uuid
+        newName = seedName
+        duplicated = 0
+        while True:                    
+            if not self.deviceNameExists(newName):
+                break
+            duplicated += 1
+            newName = seedName + ' (' + str(duplicated) + ')'
+        return newName
+                 
     def deviceNameExists (self,name):
         nameFound = False
         for device in indigo.devices:
@@ -380,10 +399,10 @@ class Plugin(indigo.PluginBase):
         except Exception, e:
             self.plugin.errorLog(u"WebHook: Error: " + str(e))
       
-    def sensorUpdateFromWebhook (self,address,uuid): 
+    def sensorUpdateFromWebhook (self, hookSource): #address,uuid): 
         found = False       
         for deviceId in self.deviceList:
-            if self.deviceList[deviceId]['address'] == address:
+            if self.deviceList[deviceId]['address'] == hookSource["ipaddress"]:
                 device = indigo.devices[deviceId]
                 self.debugLog(u"WebHook: The request comes from '" + device.name + "' device")
                 self.sensorUpdate(indigo.devices[deviceId], False)
@@ -392,20 +411,31 @@ class Plugin(indigo.PluginBase):
         if not found:
             for device in indigo.devices.itervalues(filter="self.thinkingcleaner"): 
                 devProps = device.pluginProps
-                if devProps["uuid"] == uuid and devProps["address"] != address:
-                    oldValue = devProps["address"]
-                    devProps["address"] = address
-                    device.replacePluginPropsOnServer(devProps)
-                    for deviceId in self.deviceList:
-                        if self.deviceList[deviceId]['uuid'] == uuid:
-                            self.deviceList[deviceId]['address'] = address
-                            found = True
-                            break
-                    
-                    indigo.server.log ('Updated address for existing device "' + device.name + '". From ' + oldValue + ' to ' + address)
-                    self.sensorUpdate(device, False)
-                    break
-        
+                if devProps["uuid"] == hookSource["uuid"]:
+                    if devProps["address"] == hookSource["ipaddress"]:
+                        self.debugLog(u"WebHook: The request comes from '" + device.name + u"' device. Indigo communication disabled?")
+                        found = True
+                        break
+                    else:
+                        oldValue = devProps["address"]
+                        devProps["address"] = hookSource["ipaddress"]
+                        device.replacePluginPropsOnServer(devProps)
+                        for deviceId in self.deviceList:
+                            if self.deviceList[deviceId]['uuid'] == hookSource["uuid"]:
+                                self.deviceList[deviceId]['address'] = hookSource["ipaddress"]
+                                found = True
+                                break
+                        
+                        indigo.server.log ('Updated address for existing device "' + device.name + '". From ' + oldValue + ' to ' + device['address'])
+                        self.sensorUpdate(device, False)
+                        break
+        if not found and self.webhookDiscovery:
+            if not self.discoveryWorking:
+                self.discoveryWorking = True
+                device = self.createdDiscoveredDevice (hookSource)
+                indigo.server.log (u'Created new device "' + device.name + u'". Was detected using WebHook')
+                self.discoveryWorking = False
+            pass
                     
     ###################################################################
     # Concurrent Thread
@@ -424,11 +454,11 @@ class Plugin(indigo.PluginBase):
                             state           = indigo.devices[deviceId].states["RoombaState"]
                             lastTimeSensor  = self.deviceList[deviceId]['lastTimeSensor']
                             if state == "clean":
-                                pollingInterval = 30
+                                pollingInterval = self.pollingIntervalClean
                             elif state == "stop":
-                                pollingInterval = 30
+                                pollingInterval = self.pollingIntervalClean
                             else:
-                                pollingInterval = 120
+                                pollingInterval = self.pollingIntervalDock
                             nextTimeSensor = lastTimeSensor + datetime.timedelta(seconds=pollingInterval)
 
                             if nextTimeSensor <= todayNow:  
@@ -741,8 +771,7 @@ class Plugin(indigo.PluginBase):
             needAwake = False
         if sBatteryLevel > 0:
             needAwake = False
-        #if sChargingState > 0:
-        #   needAwake = False
+  
         if sCapacity > 0:
             needAwake = False
 
@@ -793,15 +822,17 @@ class Plugin(indigo.PluginBase):
         tctype = payloadDict ['tc_status']['modelnr'] 
         
         otherSameUuid = False
+        if not device.pluginProps["tcdevicetype"]:
+            devProps = device.pluginProps
+            devProps.update({"tcdevicetype":tctype})
+            device.replacePluginPropsOnServer(devProps)
         if not device.pluginProps["uuid"]:
             for other in self.deviceList:
                 if self.deviceList[other]['uuid'] == uuid:
                      otherSameUuid = True            
             if not otherSameUuid:
                 devProps = device.pluginProps
-                devProps["uuid"] = uuid
-                devProps["tcdevicetype"] = tctype
-                #devProps["autodiscovered"] = False
+                devProps.update({"uuid":uuid})
                 device.replacePluginPropsOnServer(devProps)
                 for roomba in self.deviceList:
                     indigoDevice = self.deviceList[roomba]['ref']
@@ -956,6 +987,8 @@ class Plugin(indigo.PluginBase):
         return
         
     def menuDeviceDiscovery(self):
+        if self.discoveryWorking:
+            return
         self.deviceDiscover()
         return
         
