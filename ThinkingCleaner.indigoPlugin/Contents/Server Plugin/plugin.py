@@ -138,6 +138,7 @@ class Plugin(indigo.PluginBase):
         self.reqRunning = False
         socket.setdefaulttimeout(self.reqTimeout)        
         self.startWebhook()
+        self.updater.checkForUpdate()
 
     def shutdown(self):
         self.debugLog(u"shutdown called")
