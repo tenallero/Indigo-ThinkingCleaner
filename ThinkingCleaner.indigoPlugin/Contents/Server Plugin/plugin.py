@@ -19,6 +19,7 @@ import simplejson as json
 from SocketServer import ThreadingMixIn
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import threading
+from ghpu import GitHubPluginUpdater
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -62,7 +63,8 @@ class httpHandler(BaseHTTPRequestHandler):
 class Plugin(indigo.PluginBase):
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
-
+        self.updater = GitHubPluginUpdater('tenallero', 'Indigo-ThinkingCleaner', self)
+        
         # Timeout
         self.reqTimeout = 8
          # Pooling interval
@@ -166,11 +168,11 @@ class Plugin(indigo.PluginBase):
             self.webhookDiscovery = self.pluginPrefs.get('webhookDiscovery',False)
         else:
             self.webhookPort = 0
-            self.webhookDiscovery = False
-            
-       
-
-        self.reqTimeout = 8   
+            self.webhookDiscovery = False         
+        self.reqTimeout = 8
+        
+        
+           
 
     ###################################################################
     # UI Validations
@@ -1000,6 +1002,7 @@ class Plugin(indigo.PluginBase):
         return
         
     def checkPluginUpdates(self):        
-        indigo.server.log("Check for plugin updates ...")
+        #indigo.server.log("Checking for plugin updates ...")
+        self.updater.checkForUpdate()
         return    
         

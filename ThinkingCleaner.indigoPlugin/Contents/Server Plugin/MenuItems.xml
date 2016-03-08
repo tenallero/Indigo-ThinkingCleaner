@@ -8,10 +8,14 @@
 		<Name>Toggle Debugging</Name>
         <CallbackMethod>toggleDebugging</CallbackMethod>
 	</MenuItem>
-    <!--
+    
+    <MenuItem
+        id="titleSeparator1"
+        type="separator" />
+        
     <MenuItem id="checkForUpdates">
         <Name>Check for Plugin Updates</Name>
         <CallbackMethod>checkPluginUpdates</CallbackMethod>
     </MenuItem>
-    -->
+    
 </MenuItems>
