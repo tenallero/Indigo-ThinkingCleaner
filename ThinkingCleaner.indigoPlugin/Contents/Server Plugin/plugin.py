@@ -113,7 +113,9 @@ class Plugin(indigo.PluginBase):
             devProps = device.pluginProps
             devProps["tcname"] = ""
             device.replacePluginPropsOnServer(devProps)
-         
+        if not device.states.has_key("rawCleanerState"):
+            device.stateListOrDisplayStateIdChanged()
+            
         #self.deviceCleanForDebug(device)
         self.deviceAddList(device)
 
@@ -597,7 +599,9 @@ class Plugin(indigo.PluginBase):
                 f = urllib2.urlopen(theUrl)
                 requestOK = True
                 if requestTrial > 0 or device.states["RoombaState"] == "lost":
+                    
                     indigo.server.log(device.name + ": was lost, now FOUND !" )
+                    device.setErrorStateOnServer(None)
 
             except Exception, e:
                 if fromRequest == False and self.reqRunning == True:
@@ -615,6 +619,7 @@ class Plugin(indigo.PluginBase):
 
             self.debugLog(device.name + ": Error: " + lastError)
             self.errorLog(device.name + " is LOST !")
+            device.setErrorStateOnServer('Lost')
             return False
 
         try:
@@ -638,88 +643,88 @@ class Plugin(indigo.PluginBase):
             sState = 'dock'
             sChargingState = 'notcharging'
             pass
-        if sCleanerState == "st_base_recon":
+        elif sCleanerState == "st_base_recon":
             sState = 'dock'
             sChargingState = 'recovery'
             pass
-        if sCleanerState == "st_base_full":
+        elif sCleanerState == "st_base_full":
             sState = 'dock'
             sChargingState = 'charging' 
             pass
-        if sCleanerState == "st_base_trickle":
+        elif sCleanerState == "st_base_trickle":
             sState = 'dock'
             sChargingState = 'trickle'  
             pass
-        if sCleanerState == "st_base_wait":
+        elif sCleanerState == "st_base_wait":
             sState = 'dock'
             sChargingState = 'waiting'
             pass
-        if sCleanerState == "st_plug":
+        elif sCleanerState == "st_plug":
             sState = 'plugged'
             sChargingState = 'notcharging'
             pass
-        if sCleanerState == "st_plug_recon":
+        elif sCleanerState == "st_plug_recon":
             sState = 'plugged'
             sChargingState = 'recovery'     
             pass
-        if sCleanerState == "st_plug_full":
+        elif sCleanerState == "st_plug_full":
             sState = 'plugged'
             sChargingState = 'charging' 
             pass
-        if sCleanerState == "st_plug_trickle":
+        elif sCleanerState == "st_plug_trickle":
             sState = 'plugged'
             sChargingState = 'trickle'          
             pass
-        if sCleanerState == "st_plug_wait":
+        elif sCleanerState == "st_plug_wait":
             sState = 'plugged'
             sChargingState = 'waiting'
             pass
-        if sCleanerState == "st_stopped":
+        elif sCleanerState == "st_stopped":
             sState = 'stop'
             sChargingState = 'notcharging'
             pass
-        if sCleanerState == "st_clean":
+        elif sCleanerState == "st_clean":
             sState = 'clean'
             sChargingState = 'notcharging'          
             pass
-        if sCleanerState == "st_cleanstop":
+        elif sCleanerState == "st_cleanstop":
             sState = 'clean'
             sChargingState = 'notcharging'          
             pass
-        if sCleanerState == "st_clean_spot":
+        elif sCleanerState == "st_clean_spot":
             sState = 'clean'
             sChargingState = 'notcharging'          
             pass                    
-        if sCleanerState == "st_clean_max":
+        elif sCleanerState == "st_clean_max":
             sState = 'clean'
             sChargingState = 'notcharging'          
             pass
-        if sCleanerState == "st_delayed":
+        elif sCleanerState == "st_delayed":
             pass
-        if sCleanerState == "st_dock":
+        elif sCleanerState == "st_dock":
             sState = 'clean'
             sChargingState = 'notcharging'  
             sSearchingDock = 'Yes'      
             pass
-        if sCleanerState == "st_pickup":
+        elif sCleanerState == "st_pickup":
             sState = 'stop'
             sChargingState = 'notcharging'                  
             pass        
-        if sCleanerState == "st_remote":
+        elif sCleanerState == "st_remote":
             pass
-        if sCleanerState == "st_wait":
+        elif sCleanerState == "st_wait":
             pass
-        if sCleanerState == "st_off":
+        elif sCleanerState == "st_off":
             sState = 'stop'
             sChargingState = 'notcharging'          
             pass
-        if sCleanerState == "st_error":
+        elif sCleanerState == "st_error":
             sState = 'problem'
             sChargingState = 'notcharging'          
             pass            
-        if sCleanerState == "st_locate":
+        elif sCleanerState == "st_locate":
             pass
-        if sCleanerState == "st_unknown":
+        elif sCleanerState == "st_unknown":
             sState = 'problem'
             sChargingState = 'notcharging'          
             pass            
@@ -800,6 +805,8 @@ class Plugin(indigo.PluginBase):
         self.updateDeviceState(device, "DirtDetected", sDirtDetected)
         
         self.updateDeviceState(device, "SearchingDock", sSearchingDock)
+
+        self.updateDeviceState(device, "rawCleanerState",sCleanerState)
 
         if sChargingState == 'none':
             pass

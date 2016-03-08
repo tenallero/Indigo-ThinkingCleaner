@@ -211,7 +211,13 @@
                 <TriggerLabel>Total Cleaning Distance</TriggerLabel>
                 <ControlPageLabel>Total Cleaning Distance</ControlPageLabel>
             </State>
-                    
+            
+            <State id="rawCleanerState" defaultValue="st_off">
+                <ValueType>String</ValueType>
+                <TriggerLabel>Raw cleaner state</TriggerLabel>
+                <ControlPageLabel>Raw cleaner state</ControlPageLabel>
+            </State>
+             
         </States>
     </Device>
 </Devices>
