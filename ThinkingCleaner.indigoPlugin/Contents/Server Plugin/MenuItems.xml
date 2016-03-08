@@ -4,14 +4,16 @@
 		<Name>Discover devices</Name>		
         <CallbackMethod>menuDeviceDiscovery</CallbackMethod>
 	</MenuItem>
+    
+    <MenuItem id="titleSeparator1" type="separator" />
+        
+        
     <MenuItem id="toggleDebugging">
 		<Name>Toggle Debugging</Name>
         <CallbackMethod>toggleDebugging</CallbackMethod>
 	</MenuItem>
     
-    <MenuItem
-        id="titleSeparator1"
-        type="separator" />
+ 
         
     <MenuItem id="checkForUpdates">
         <Name>Check for Plugin Updates</Name>
