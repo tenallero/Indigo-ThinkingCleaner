@@ -12,9 +12,14 @@
         <CallbackMethod>toggleDebugging</CallbackMethod>
 	</MenuItem>
 
-    <MenuItem id="checkForUpdates">
+     <MenuItem id="checkForUpdates">
         <Name>Check for Plugin Updates</Name>
-        <CallbackMethod>checkPluginUpdates</CallbackMethod>
+        <CallbackMethod>checkForUpdates</CallbackMethod>
+    </MenuItem>
+    
+    <MenuItem id="updatePlugin">
+        <Name>Update Plugin</Name>
+        <CallbackMethod>updatePlugin</CallbackMethod>
     </MenuItem>
     
 </MenuItems>

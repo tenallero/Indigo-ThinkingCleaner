@@ -173,10 +173,14 @@ class GitHubPluginUpdater(object):
     #---------------------------------------------------------------------------
     # verifies the plugin info in the zipfile and returns the confirmed name-version
     def _verifyPluginInfo(self, zipfile):
+        subfolder = self.plugin.pluginDisplayName + '.indigoPlugin'
         topdir = zipfile.namelist()[0]
-
-        # read and confirm the plugin info contained in the zipfile
-        plistFile = os.path.join(topdir, 'Contents', 'Info.plist')
+  
+        # read and confirm the plugin info contained in the zipfile      
+        plistFile = os.path.join(topdir, subfolder, 'Contents', 'Info.plist')
+        if not plistFile in zipfile.namelist():
+            plistFile = os.path.join(topdir, 'Contents', 'Info.plist')
+        
         self._debug('Searching for plugin info: %s' % plistFile)
 
         plistData = zipfile.read(plistFile)
@@ -233,7 +237,7 @@ class GitHubPluginUpdater(object):
         # and we know the package location for installing the plugin
 
         zipfile.extractall(tmpdir)
-
+  
         # now, make sure we got what we expected
         if (not os.path.exists(destDir)):
             raise Exception('Failed to extract plugin')
@@ -242,7 +246,11 @@ class GitHubPluginUpdater(object):
         os.rename(destDir, newPluginDir)
 
         self._debug('Installing %s' % newPluginName)
-        subprocess.call(['open', newPluginDir])
+        subfolder = os.path.join(newPluginDir, self.plugin.pluginDisplayName + '.indigoPlugin')
+        if (os.path.exists(subfolder)):
+            subprocess.call(['open', subfolder])
+        else:
+            subprocess.call(['open', newPluginDir])
 
         # all clear...  the new plugin has been installed
 

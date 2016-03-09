@@ -1002,8 +1002,11 @@ class Plugin(indigo.PluginBase):
         self.deviceDiscover()
         return
         
-    def checkPluginUpdates(self):        
-        #indigo.server.log("Checking for plugin updates ...")
-        self.updater.checkForUpdate()
+    def checkForUpdates(self):
+        update = self.updater.checkForUpdate() 
+        if (update != None):
+            pass
         return    
-        
+
+    def updatePlugin(self):
+        self.updater.update()
