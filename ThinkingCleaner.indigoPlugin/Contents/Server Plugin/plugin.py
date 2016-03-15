@@ -121,14 +121,16 @@ class Plugin(indigo.PluginBase):
         #self.deviceCleanForDebug(device)
         self.addDeviceToList(device)
 
-    def addDeviceToList(self, device):             
-        if device.id not in self.deviceList:
-            self.deviceList[device.id] = {'ref':device, 'address': device.pluginProps["address"], 'uuid': device.pluginProps["uuid"], 'lastTimeSensor':datetime.datetime.now(), 'lastTimeUpdate':datetime.datetime.now()}
-            self.sensorUpdateFromRequest(device)
+    def addDeviceToList(self, device):
+        if device:             
+            if device.id not in self.deviceList:
+                self.deviceList[device.id] = {'ref':device, 'address': device.pluginProps["address"], 'uuid': device.pluginProps["uuid"], 'lastTimeSensor':datetime.datetime.now(), 'lastTimeUpdate':datetime.datetime.now()}
+                self.sensorUpdateFromRequest(device)
 
     def deleteDeviceFromList(self, device):
-        if device.id in self.deviceList:
-            del self.deviceList[device.id]
+        if device:
+            if device.id in self.deviceList:
+                del self.deviceList[device.id]
     
     def deviceStopComm(self,device):
         if device.id not in self.deviceList:
