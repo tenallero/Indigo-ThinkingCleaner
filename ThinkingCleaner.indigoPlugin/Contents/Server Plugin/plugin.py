@@ -119,18 +119,22 @@ class Plugin(indigo.PluginBase):
             device.stateListOrDisplayStateIdChanged()
             
         #self.deviceCleanForDebug(device)
-        self.deviceAddList(device)
+        self.addDeviceToList(device)
 
-    def deviceAddList(self, device):             
+    def addDeviceToList(self, device):             
         if device.id not in self.deviceList:
             self.deviceList[device.id] = {'ref':device, 'address': device.pluginProps["address"], 'uuid': device.pluginProps["uuid"], 'lastTimeSensor':datetime.datetime.now(), 'lastTimeUpdate':datetime.datetime.now()}
             self.sensorUpdateFromRequest(device)
 
+    def deleteDeviceFromList(self, device):
+        if device.id in self.deviceList:
+            del self.deviceList[device.id]
+    
     def deviceStopComm(self,device):
         if device.id not in self.deviceList:
             return
         self.debugLog(device.name + ": Stoping device")
-        del self.deviceList[device.id]
+        self.deleteDeviceFromList (device)   
 
     def startup(self):
         self.loadPluginPrefs()
@@ -148,8 +152,7 @@ class Plugin(indigo.PluginBase):
 
     def deviceDeleted(self, device):
         indigo.server.log (u"Deleted device \"%s\" of type \"%s\"" % (device.name, device.deviceTypeId))
-        if device.id in self.deviceList:
-             del self.deviceList[device.id]
+        self.deleteDeviceFromList (device)
              
     def loadPluginPrefs(self):
         # set debug option
@@ -215,6 +218,10 @@ class Plugin(indigo.PluginBase):
     def closedDeviceConfigUi(self, valuesDict, userCancelled, typeId, devId):
         if userCancelled is False:
             indigo.server.log ("Device settings were updated.")
+            device = indigo.devices[devId]
+            self.deleteDeviceFromList (device)
+            self.addDeviceToList (device)
+
             
     def deviceDiscoverUI(self, valuesDict, typeId, devId):
         if self.discoveryWorking:
@@ -306,7 +313,7 @@ class Plugin(indigo.PluginBase):
                     "name":discovered['name'],
                     "device_type":discovered['device_type']}
                 device = self.createdDiscoveredDevice(newProps)
-                self.deviceAddList (device)
+                self.addDeviceToList (device)
                 totalCreated += 1
             else:
                if modified:
@@ -334,7 +341,7 @@ class Plugin(indigo.PluginBase):
                         deviceTypeId="thinkingcleaner",
                         props={"uuid":props['uuid'], "tcdevicetype":props['device_type'],  "tcname":props['name'], "autodiscovered": True},
                         folder=deviceFolderId)
-        self.deviceAddList (device)
+        self.addDeviceToList (device)
         return device
         
         
