@@ -63,7 +63,7 @@ class httpHandler(BaseHTTPRequestHandler):
 class Plugin(indigo.PluginBase):
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
-        self.updater = GitHubPluginUpdater('tenallero', 'Indigo-ThinkingCleaner', self)
+        self.updater = GitHubPluginUpdater(self) #'tenallero', 'Indigo-ThinkingCleaner', self)
         
         # Timeout
         self.reqTimeout = 8
