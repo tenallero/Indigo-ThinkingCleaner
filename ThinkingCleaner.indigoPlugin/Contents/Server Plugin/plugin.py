@@ -967,16 +967,14 @@ class Plugin(indigo.PluginBase):
     def actionControlDimmerRelay(self, pluginAction, device):
         ## Relay ON ##
         if pluginAction.deviceAction == indigo.kDeviceAction.TurnOn:
-            if self.buttonClean(pluginAction,device):
-                indigo.server.log(u"sent \"%s\" %s" % (device.name, "on"))
-            else:
+            indigo.server.log(u"sent \"%s\" %s" % (device.name, "on"))
+            if not self.buttonClean(pluginAction,device):        
                 indigo.server.log(u"send \"%s\" %s failed" % (device.name, "on"), isError=True)
 
         ## Relay OFF ##
         elif pluginAction.deviceAction == indigo.kDeviceAction.TurnOff:
-            if self.buttonDock(pluginAction,device):
-                indigo.server.log(u"sent \"%s\" %s" % (device.name, "off"))
-            else:
+            indigo.server.log(u"sent \"%s\" %s" % (device.name, "off"))
+            if not self.buttonDock(pluginAction,device):             
                 indigo.server.log(u"send \"%s\" %s failed" % (device.name, "off"), isError=True)
 
         ## Relay TOGGLE ##
