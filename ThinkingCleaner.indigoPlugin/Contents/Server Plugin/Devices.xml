@@ -56,9 +56,14 @@
                 <Description>TC device type</Description>
             </Field>
             
-             <Field id="autodiscovered" type="checkbox" defaultValue="false" readonly="YES" hidden="true">
+            <Field id="autodiscovered" type="checkbox" defaultValue="false" readonly="YES" hidden="true">
                 <Label>Autodiscovered:</Label>
                 <Description>It was discovered automatically</Description>
+            </Field>
+
+            <Field id="undockbeforeclean" type="checkbox" defaultValue="false">
+                <Label>Undock action before start cleaning:</Label>
+                <Descriptionxx>Indigo will send undock command before to send clean command</Descriptionxx>
             </Field>
 
             <Field id="space3" type="label">

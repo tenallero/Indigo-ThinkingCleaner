@@ -110,11 +110,16 @@ class Plugin(indigo.PluginBase):
             devProps["tcdevicetype"] = ""
             devProps["autodiscovered"] = False
             devProps["tcname"] = ""
+            devProps["undockbeforeclean"] = False
             device.replacePluginPropsOnServer(devProps)
         if not device.pluginProps.has_key("tcname"):
             devProps = device.pluginProps
             devProps["tcname"] = ""
+            devProps["undockbeforeclean"] = False
             device.replacePluginPropsOnServer(devProps)
+        if not device.pluginProps.has_key("undockbeforeclean"):    
+            devProps = device.pluginProps
+            devProps["undockbeforeclean"] = False
         if not device.states.has_key("rawCleanerState"):
             device.stateListOrDisplayStateIdChanged()
             
@@ -915,7 +920,9 @@ class Plugin(indigo.PluginBase):
             indigo.server.log(device.name + u": Device is also cleaning.")
             return True
         if sState == 'dock':
-            self.leaveDock(device)
+            devProps = device.pluginProps
+            if devProps["undockbeforeclean"]:
+                self.leaveDock(device)
         if self.sendRequest (device,"/command.json?command=clean") == True:     
             return True
         else:
