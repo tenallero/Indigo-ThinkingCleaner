@@ -98,7 +98,7 @@ class Plugin(indigo.PluginBase):
 
     def deviceCleanForDebug(self,device):
         devProps = device.pluginProps
-        devProps.update({"uuid":"","address":"172.30.74.83","tcname":"","tcdevicetype":"","autodiscovered":False,"undockbeforeclean":False)}
+        devProps.update({"uuid":"","address":"172.30.74.83","tcname":"","tcdevicetype":"","autodiscovered":False,"undockbeforeclean":False})
         device.replacePluginPropsOnServer(devProps)
         
     def deviceStartComm(self, device):
