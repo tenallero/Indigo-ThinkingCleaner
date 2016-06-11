@@ -98,7 +98,7 @@ class Plugin(indigo.PluginBase):
 
     def deviceCleanForDebug(self,device):
         devProps = device.pluginProps
-        devProps.update({"uuid":"","address":"172.30.74.83","tcname":"","tcdevicetype":"","autodiscovered":False})
+        devProps.update({"uuid":"","address":"172.30.74.83","tcname":"","tcdevicetype":"","autodiscovered":False,"undockbeforeclean":False)}
         device.replacePluginPropsOnServer(devProps)
         
     def deviceStartComm(self, device):
@@ -305,6 +305,7 @@ class Plugin(indigo.PluginBase):
                         devProps["tcdevicetype"] = discovered['device_type']
                         devProps["tcname"] = discovered['name']
                         devProps["autodiscovered"] = True
+                        devProps["undockbeforeclean"] = False
                         device.replacePluginPropsOnServer(devProps)
                         
                         modified = True
@@ -346,7 +347,7 @@ class Plugin(indigo.PluginBase):
                         description='ThinkingCleaner discovered device', 
                         pluginId="com.tenallero.indigoplugin.thinkingcleaner",
                         deviceTypeId="thinkingcleaner",
-                        props={"uuid":props['uuid'], "tcdevicetype":props['device_type'],  "tcname":props['name'], "autodiscovered": True},
+                        props={"uuid":props['uuid'], "tcdevicetype":props['device_type'],  "tcname":props['name'], "autodiscovered": True,"undockbeforeclean": False},
                         folder=deviceFolderId)
         self.addDeviceToList (device)
         return device
