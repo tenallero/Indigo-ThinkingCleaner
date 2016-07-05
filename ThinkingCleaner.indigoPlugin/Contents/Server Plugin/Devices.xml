@@ -66,6 +66,11 @@
                 <Descriptionxx>Indigo will send undock command before to send clean command</Descriptionxx>
             </Field>
 
+            <Field id="sleepingproblem" type="checkbox" defaultValue="false">
+                <Label>The plugin will repeat command if detects Roomba sleeping:</Label>
+                
+            </Field>
+
             <Field id="space3" type="label">
     	       <Label/>
             </Field>
