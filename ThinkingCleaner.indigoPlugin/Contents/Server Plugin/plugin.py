@@ -605,11 +605,11 @@ class Plugin(indigo.PluginBase):
         if not(obeyedOrder):
   
             if tryCount == 1:
-                self.sleep(6)
-            elif tryCount < 8:
-                self.sleep(3)
+                self.sleep(8)
+            elif tryCount < 11:
+                self.sleep(0.500)
             else:
-                self.sleep(6)
+                self.sleep(8)
 
             self.sensorUpdateFromThread (device)
             obeyedOrder = self.checkLastCommandNewState(device,lastCommand)
@@ -1063,10 +1063,9 @@ class Plugin(indigo.PluginBase):
             devProps = device.pluginProps
             if devProps["undockbeforeclean"]:
                 self.leaveDock(device)
-        if (self.checkSleepingDevice(device)):
-            self.buttonRestart(device)
+        #if (self.checkSleepingDevice(device)):
+        #    self.buttonRestart(device)
         if self.sendCommand (device,'clean') == True:       
-        #if self.sendRequest (device,"/command.json?command=clean") == True:     
             return True
         else:
             return False
