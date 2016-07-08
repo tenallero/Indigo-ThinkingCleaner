@@ -566,15 +566,15 @@ class Plugin(indigo.PluginBase):
         stateActual  = device.states["RoombaState"]
         if lastCommand == 'clean':
             if stateActual == 'clean':
-                    obeyedOrder = True
+                obeyedOrder = True
         elif lastCommand == 'leavehomebase':
             if not(stateActual == 'dock'):
-                    obeyedOrder = True
+                obeyedOrder = True
         elif lastCommand == 'dock':
-            if stateActual == 'clean':
-                    obeyedOrder = True
+            if stateActual == 'dock':
+                obeyedOrder = True
             if stateActual == 'waiting':
-                    obeyedOrder = True
+                obeyedOrder = True
             if device.states["SearchingDock"] == 'Yes':
                 obeyedOrder = True
         elif lastCommand == 'poweroff':
@@ -1009,16 +1009,27 @@ class Plugin(indigo.PluginBase):
         indigo.server.log(device.name + u": Leaving dock ....")
         #self.sendRequest (device,"/command.json?command=leavehomebase")
         self.sendCommand (device,'leavehomebase')
-        self.sleep(5)
+        self.sleep(5)        
         pass        
 
     ###################################################################
     # Custom Action callbacks
     ###################################################################
 
+
+    def buttonRestart(self, device):
+        indigo.server.log(device.name + u": Restart Action called")
+        if self.sendRequest (device,"/command.json?command=crash") == True:
+            indigo.server.log(device.name + u": Restarting ...")
+            self.sleep (30)
+            self.sensorUpdateFromThread (device)
+            return True
+        else:
+            return False
+
     def buttonFindMe(self, pluginAction, device):
         indigo.server.log(device.name + u": Find-me Action called")
-        if self.sendRequest (device,"/command.json?command=find_me") == True:
+        if self.sendRequest (device,"/command.json?command=find_me") == True:           
             return True
         else:
             return False
@@ -1052,6 +1063,8 @@ class Plugin(indigo.PluginBase):
             devProps = device.pluginProps
             if devProps["undockbeforeclean"]:
                 self.leaveDock(device)
+        if (self.checkSleepingDevice(device)):
+            self.buttonRestart(device)
         if self.sendCommand (device,'clean') == True:       
         #if self.sendRequest (device,"/command.json?command=clean") == True:     
             return True
