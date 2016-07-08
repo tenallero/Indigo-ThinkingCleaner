@@ -63,7 +63,7 @@ class httpHandler(BaseHTTPRequestHandler):
 class Plugin(indigo.PluginBase):
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
-        self.updater = GitHubPluginUpdater(self)
+        self.updater = GitHubPluginUpdater(self) #'tenallero', 'Indigo-ThinkingCleaner', self)
         
         # Timeout
         self.reqTimeout = 8
@@ -87,8 +87,6 @@ class Plugin(indigo.PluginBase):
         # Discovery
         self.discoveryWorking = False
  
-        # Retry
-        self.maxRetryLastCommand = 15
        
 
     def __del__(self):
@@ -100,15 +98,7 @@ class Plugin(indigo.PluginBase):
 
     def deviceCleanForDebug(self,device):
         devProps = device.pluginProps
-        devProps.update({
-        "uuid":"",
-        "address":"172.30.74.83",
-        "tcname":"",
-        "tcdevicetype":"",
-        "autodiscovered":False,
-        "undockbeforeclean":False,
-        "sleepingproblem": False
-        })
+        devProps.update({"uuid":"","address":"172.30.74.83","tcname":"","tcdevicetype":"","autodiscovered":False,"undockbeforeclean":False})
         device.replacePluginPropsOnServer(devProps)
         
     def deviceStartComm(self, device):
@@ -121,39 +111,25 @@ class Plugin(indigo.PluginBase):
             devProps["autodiscovered"] = False
             devProps["tcname"] = ""
             devProps["undockbeforeclean"] = False
-            devProps["sleepingproblem"] = False
             device.replacePluginPropsOnServer(devProps)
         if not device.pluginProps.has_key("tcname"):
             devProps = device.pluginProps
             devProps["tcname"] = ""
             devProps["undockbeforeclean"] = False
-            devProps["sleepingproblem"] = False
             device.replacePluginPropsOnServer(devProps)
         if not device.pluginProps.has_key("undockbeforeclean"):    
             devProps = device.pluginProps
             devProps["undockbeforeclean"] = False
-            devProps["sleepingproblem"] = False
         if not device.states.has_key("rawCleanerState"):
             device.stateListOrDisplayStateIdChanged()
-        if not device.pluginProps.has_key("sleepingproblem"):   
-            devProps = device.pluginProps     
-            devProps["sleepingproblem"] = False
-
+            
         #self.deviceCleanForDebug(device)
         self.addDeviceToList(device)
 
     def addDeviceToList(self, device):
         if device:             
             if device.id not in self.deviceList:
-                self.deviceList[device.id] = {
-                'ref':device, 
-                'address': device.pluginProps["address"], 
-                'uuid': device.pluginProps["uuid"], 
-                'lastTimeSensor':datetime.datetime.now(), 
-                'lastTimeUpdate':datetime.datetime.now(),
-                'lastCommand':"",
-                'lastCommandCount':0
-                }
+                self.deviceList[device.id] = {'ref':device, 'address': device.pluginProps["address"], 'uuid': device.pluginProps["uuid"], 'lastTimeSensor':datetime.datetime.now(), 'lastTimeUpdate':datetime.datetime.now()}
                 self.sensorUpdateFromRequest(device)
 
     def deleteDeviceFromList(self, device):
@@ -206,7 +182,9 @@ class Plugin(indigo.PluginBase):
             self.webhookDiscovery = False         
         self.reqTimeout = 8
         
-    
+        
+           
+
     ###################################################################
     # UI Validations
     ###################################################################
@@ -328,7 +306,6 @@ class Plugin(indigo.PluginBase):
                         devProps["tcname"] = discovered['name']
                         devProps["autodiscovered"] = True
                         devProps["undockbeforeclean"] = False
-                        devProps["sleepingproblem"] = False
                         device.replacePluginPropsOnServer(devProps)
                         
                         modified = True
@@ -370,14 +347,7 @@ class Plugin(indigo.PluginBase):
                         description='ThinkingCleaner discovered device', 
                         pluginId="com.tenallero.indigoplugin.thinkingcleaner",
                         deviceTypeId="thinkingcleaner",
-                        props={
-                            "uuid":props['uuid'], 
-                            "tcdevicetype":props['device_type'],  
-                            "tcname":props['name'], 
-                            "autodiscovered": True,
-                            "undockbeforeclean": False,
-                            "sleepingproblem": False
-                            },
+                        props={"uuid":props['uuid'], "tcdevicetype":props['device_type'],  "tcname":props['name'], "autodiscovered": True,"undockbeforeclean": False},
                         folder=deviceFolderId)
         self.addDeviceToList (device)
         return device
@@ -500,25 +470,22 @@ class Plugin(indigo.PluginBase):
                     todayNow = datetime.datetime.now()
                     for deviceId in self.deviceList:
                         if deviceId in indigo.devices:
-                            if self.deviceList [deviceId]['lastCommandCount'] > 0:
-                                self.retryLastCommand(indigo.devices[deviceId])
+                            pollingInterval = 0
+                            state           = indigo.devices[deviceId].states["RoombaState"]
+                            lastTimeSensor  = self.deviceList[deviceId]['lastTimeSensor']
+                            if state == "clean":
+                                pollingInterval = self.pollingIntervalClean
+                            elif state == "stop":
+                                pollingInterval = self.pollingIntervalClean
                             else:
-                                pollingInterval = 0
-                                state           = indigo.devices[deviceId].states["RoombaState"]
-                                lastTimeSensor  = self.deviceList[deviceId]['lastTimeSensor']
-                                if state == "clean":
-                                    pollingInterval = self.pollingIntervalClean
-                                elif state == "stop":
-                                    pollingInterval = self.pollingIntervalClean
-                                else:
-                                    pollingInterval = self.pollingIntervalDock
-                                nextTimeSensor = lastTimeSensor + datetime.timedelta(seconds=pollingInterval)
+                                pollingInterval = self.pollingIntervalDock
+                            nextTimeSensor = lastTimeSensor + datetime.timedelta(seconds=pollingInterval)
 
-                                if nextTimeSensor <= todayNow:  
-                                    if self.reqRunning == False:
-                                        self.sensorUpdateFromThread(indigo.devices[deviceId])
+                            if nextTimeSensor <= todayNow:  
+                                if self.reqRunning == False:
+                                    self.sensorUpdateFromThread(indigo.devices[deviceId])
 
-                self.sleep(0.200)
+                self.sleep(0.5)
 
         except self.StopThread:
             # cleanup
@@ -535,99 +502,6 @@ class Plugin(indigo.PluginBase):
     ###################################################################
     # HTTP Request against Thinking Cleaner device.
     ###################################################################
-
-    def storeLastCommand (self, device, command):
-        if self.checkSleepingDevice(device):
-            command = command.strip()
-            if not(self.deviceList [device.id]['lastCommand'] == command):
-                self.deviceList [device.id]['lastCommand'] = command
-                self.deviceList [device.id]['lastCommandCount'] = self.maxRetryLastCommand
-        else:
-            self.deviceList [device.id]['lastCommand'] = ""       
-            self.deviceList [device.id]['lastCommandCount'] = 0            
-
-    def sendCommand(self, device, command):
-        command = command.strip()
-        self.storeLastCommand (device, command)
-        if self.sendRequest (device,"/command.json?command=" + command) == True:
-            return True
-        else:
-            return False
-
-    def checkSleepingDevice (self,device):
-        devProps = device.pluginProps
-        if devProps["sleepingproblem"]:
-            return True
-        else:
-            return False
-
-    def checkLastCommandNewState(self, device, lastCommand):
-        obeyedOrder  = False
-        stateActual  = device.states["RoombaState"]
-        if lastCommand == 'clean':
-            if stateActual == 'clean':
-                    obeyedOrder = True
-        elif lastCommand == 'leavehomebase':
-            if not(stateActual == 'dock'):
-                    obeyedOrder = True
-        elif lastCommand == 'dock':
-            if stateActual == 'clean':
-                    obeyedOrder = True
-            if stateActual == 'waiting':
-                    obeyedOrder = True
-            if device.states["SearchingDock"] == 'Yes':
-                obeyedOrder = True
-        elif lastCommand == 'poweroff':
-            pass
-        elif lastCommand == 'spot':
-            obeyedOrder = True
-        elif lastCommand == 'find_me':
-            obeyedOrder = True
-
-        if stateActual == 'lost':
-            obeyedOrder = True
-        if stateActual == 'problem':
-            obeyedOrder = True
-        return obeyedOrder
-
-
-    def retryLastCommand(self, device):
-        if not(self.checkSleepingDevice(device)):
-            self.deviceList [device.id]['lastCommand'] = ""
-            self.deviceList [device.id]['lastCommandCount'] = 0            
-            return True
-
-        lastCommand      = self.deviceList [device.id]['lastCommand']
-        lastCommandCount = int(self.deviceList [device.id]['lastCommandCount'])
-        tryCount         = (self.maxRetryLastCommand - lastCommandCount + 1)
-        obeyedOrder      = self.checkLastCommandNewState(device,lastCommand)
-
-        if not(obeyedOrder):
-  
-            if tryCount == 1:
-                self.sleep(6)
-            elif tryCount < 8:
-                self.sleep(3)
-            else:
-                self.sleep(6)
-
-            self.sensorUpdateFromThread (device)
-            obeyedOrder = self.checkLastCommandNewState(device,lastCommand)
-
-        if (obeyedOrder):
-            if not (tryCount < self.maxRetryLastCommand ):
-                self.debugLog(device.name + ': Now, Roomba is awaken. And obeys the command "' + lastCommand + '"')
-            self.deviceList [device.id]['lastCommandCount'] = 0
-            self.deviceList [device.id]['lastCommand'] = ""
-            return True
-        else:
-            lastCommandCount = lastCommandCount - 1
-            self.deviceList [device.id]['lastCommandCount'] = lastCommandCount
-            self.debugLog(device.name + ': Retry to send "' + lastCommand + '" command. Try #' + str(tryCount) )
-            if self.sendRequest (device,"/command.json?command=" + lastCommand) == True:
-                return True
-            else:
-                return False
 
     def sendRequest(self, device, urlAction):
         if device.id not in self.deviceList:
@@ -1007,8 +881,7 @@ class Plugin(indigo.PluginBase):
     
     def leaveDock(self, device):
         indigo.server.log(device.name + u": Leaving dock ....")
-        #self.sendRequest (device,"/command.json?command=leavehomebase")
-        self.sendCommand (device,'leavehomebase')
+        self.sendRequest (device,"/command.json?command=leavehomebase")
         self.sleep(5)
         pass        
 
@@ -1025,15 +898,14 @@ class Plugin(indigo.PluginBase):
 
     def buttonLeaveHomeBase(self, pluginAction, device):
         indigo.server.log(device.name + u": Leave Dock Action called")
-        #if self.sendRequest (device,"/command.json?command=leavehomebase") == True:
-        if self.sendCommand (device,'leavehomebase') == True:
+        if self.sendRequest (device,"/command.json?command=leavehomebase") == True:
             return True
         else:
             return False
          
     def buttonPowerOff(self, pluginAction, device):
         indigo.server.log(device.name + u": Power off Action called")
-        if self.sendCommand (device,"poweroff") == True:
+        if self.sendRequest (device,"/command.json?command=poweroff") == True:
             return True
         else:
             return False   
@@ -1052,8 +924,7 @@ class Plugin(indigo.PluginBase):
             devProps = device.pluginProps
             if devProps["undockbeforeclean"]:
                 self.leaveDock(device)
-        if self.sendCommand (device,'clean') == True:       
-        #if self.sendRequest (device,"/command.json?command=clean") == True:     
+        if self.sendRequest (device,"/command.json?command=clean") == True:     
             return True
         else:
             return False
@@ -1068,11 +939,9 @@ class Plugin(indigo.PluginBase):
         if sState == 'dock':
             indigo.server.log(device.name + u": Roomba is also docked.")
             return True
-        if self.sendCommand (device,'dock') == True:
-            return True
-        else:   
-        #self.sendRequest (device,"/command.json?command=dock")
-            return False
+
+        self.sendRequest (device,"/command.json?command=dock")
+        return True
 
     def buttonStop(self, pluginAction, device):
         indigo.server.log(device.name + u": Stop Action called")
@@ -1083,8 +952,7 @@ class Plugin(indigo.PluginBase):
             return False
         if sState == 'clean':
             #Clean/Stop works in toggle mode
-            self.sendCommand (device,'poweroff')
-            #self.sendRequest (device,"/command.json?command=poweroff")
+            self.sendRequest (device,"/command.json?command= poweroff")
             return True
 
         indigo.server.log(device.name + u": Device is also stopped or docked.")
@@ -1097,7 +965,7 @@ class Plugin(indigo.PluginBase):
         if (sState == 'problem') or (sState == 'lost'):
             self.errorLog(device.name + u": Roomba has a problem!")
             return
-        self.sendCommand (device,"spot")
+        self.sendRequest (device,"/command.json?command=spot")
 
     ###################################################################
     # Relay Action callbacks
