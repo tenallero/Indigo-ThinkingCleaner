@@ -511,7 +511,10 @@ class Plugin(indigo.PluginBase):
                                 elif state == "stop":
                                     pollingInterval = self.pollingIntervalClean
                                 else:
-                                    pollingInterval = self.pollingIntervalDock
+                                    if self.checkSleepingDevice(indigo.devices[deviceId]):
+                                        pollingInterval = self.pollingIntervalClean
+                                    else:
+                                        pollingInterval = self.pollingIntervalDock
                                 nextTimeSensor = lastTimeSensor + datetime.timedelta(seconds=pollingInterval)
 
                                 if nextTimeSensor <= todayNow:  
