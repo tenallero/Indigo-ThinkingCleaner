@@ -586,6 +586,7 @@ class Plugin(indigo.PluginBase):
             if lastSearchingDock == actualSearchingDock:
                 return False
             else:
+                self.debugLog(device.name + ': SearchingDock changed from "' + lastSearchingDock + '" to "' + actualSearchingDock + '"')
                 return True
         else:
             self.debugLog(device.name + ': State changed from "' + lastState + '" to "' + actualState + '"')
@@ -675,6 +676,7 @@ class Plugin(indigo.PluginBase):
                 indigo.server.log (device.name + ': Roomba is now awoken!')
             if self.checkWishedState(device,lastCommand):
                 self.deviceList [device.id]['lastCommandAccomplished'] = True
+                indigo.server.log (device.name + ': "' + lastCommand + '" command accomplished')
                 return True
             else:
                 indigo.server.log (device.name + ': Retry to send "' + lastCommand + '" command. Try #' + str(tryCount) )
@@ -682,6 +684,7 @@ class Plugin(indigo.PluginBase):
                     sleep (8)
                     if self.checkWishedState(device,lastCommand):
                         self.deviceList [device.id]['lastCommandAccomplished'] = True
+                        indigo.server.log (device.name + ': "' + lastCommand + '" command accomplished')
                         return True                   
                 
         lastCommandCount = lastCommandCount - 1
