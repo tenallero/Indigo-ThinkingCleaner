@@ -154,7 +154,9 @@ class Plugin(indigo.PluginBase):
                 'lastTimeUpdate':datetime.datetime.now(),
                 'lastCommand':"",
                 'lastCommandCount':0,
-                'lastCommandAccomplished':True
+                'lastCommandAccomplished':True,
+                'lastState':"",
+                'lastSearchingDock':"No"
                 }
                 self.sensorUpdateFromRequest(device)
 
@@ -548,9 +550,11 @@ class Plugin(indigo.PluginBase):
         if self.checkSleepingDevice(device):
             command = command.strip()
             if not(self.deviceList [device.id]['lastCommand'] == command):
-                self.deviceList [device.id]['lastCommand'] = command
-                self.deviceList [device.id]['lastCommandCount'] = self.maxRetryLastCommand
+                self.deviceList [device.id]['lastCommand']             = command
+                self.deviceList [device.id]['lastCommandCount']        = self.maxRetryLastCommand
                 self.deviceList [device.id]['lastCommandAccomplished'] = False
+                self.deviceList [device.id]['lastState']               = device.states["RoombaState"]
+                self.deviceList [device.id]['lastSearchingDock']       = device.states["SearchingDock"]
         else:
             self.deviceList [device.id]['lastCommand'] = ""       
             self.deviceList [device.id]['lastCommandCount'] = 0            
@@ -571,19 +575,35 @@ class Plugin(indigo.PluginBase):
         else:
             return False
 
-    def checkLastCommandNewState(self, device, lastCommand):
+    def checkStateChanged(self, device):
+        self.sensorUpdateFromThread (device)
+        lastState           = self.deviceList [device.id]['lastState']
+        lastSearchingDock   = self.deviceList [device.id]["lastSearchingDock"]
+        actualState         = device.states["RoombaState"]
+        actualSearchingDock = device.states["SearchingDock"]
+
+        if lastState == actualState:
+            if lastSearchingDock == actualSearchingDock:
+                return False
+            else:
+                return True
+        else:
+            self.debugLog(device.name + ': State changed from "' + lastState + '" to "' + actualState + '"')
+            return True
+
+    def checkWishedState(self, device, lastCommand):
         lastCommandAccomplished  = False
-        stateActual  = device.states["RoombaState"]
+        actualState  = device.states["RoombaState"]
         if lastCommand == 'clean':
-            if stateActual == 'clean':
+            if actualState == 'clean':
                 lastCommandAccomplished = True
         elif lastCommand == 'leavehomebase':
-            if not(stateActual == 'dock'):
+            if not(actualState == 'dock'):
                 lastCommandAccomplished = True
         elif lastCommand == 'dock':
-            if stateActual == 'dock':
+            if actualState == 'dock':
                 lastCommandAccomplished = True
-            if stateActual == 'waiting':
+            if actualState == 'waiting':
                 lastCommandAccomplished = True
             if device.states["SearchingDock"] == 'Yes':
                 lastCommandAccomplished = True
@@ -594,73 +614,93 @@ class Plugin(indigo.PluginBase):
         elif lastCommand == 'find_me':
             lastCommandAccomplished = True
 
-        if stateActual == 'lost':
+        if actualState == 'lost':
             lastCommandAccomplished = True
-        if stateActual == 'problem':
+        if actualState == 'problem':
             lastCommandAccomplished = True
         return lastCommandAccomplished
 
 
-    def retryLastCommand(self, device):
-        if not(self.checkSleepingDevice(device)):
-            self.deviceList [device.id]['lastCommand'] = ""
-            self.deviceList [device.id]['lastCommandCount'] = 0  
-            self.deviceList [device.id]['lastCommandAccomplished'] = True          
+    def bombDevice (self,device):
+        if self.checkStateChanged(device):
+            indigo.server.log (device.name + ': Roomba is now awoken!')
             return True
-
-        lastCommand              = self.deviceList [device.id]['lastCommand']
-        lastCommandCount         = int(self.deviceList [device.id]['lastCommandCount'])
-        tryCount                 = (self.maxRetryLastCommand - lastCommandCount + 1)
-        lastCommandAccomplished  = self.checkLastCommandNewState(device,lastCommand)
-
-        if not(lastCommandAccomplished):
-  
-            if tryCount == 1:
-                self.sleep(8)
-            elif tryCount == 2:
-                indigo.server.log (device.name + ': Trying to awake')
-                looping   = True
-                loopCount = 0
-                while (looping):
-                    self.sendRequestOnly (device, "/command.json?command=" + lastCommand)
-                    self.sensorUpdateFromThread (device)
-                    lastCommandAccomplished = self.checkLastCommandNewState(device,lastCommand)
-                    loopCount = loopCount + 1
-                    if loopCount > 10:
-                        looping = False
-                    if lastCommandAccomplished:
-                        looping = False
-            else:
-                self.sleep(0.500)
-            #elif tryCount < 11:
-            #    self.sleep(0.500)
-            #else:
-            #    self.sleep(8)
-
-            self.sensorUpdateFromThread (device)
-            lastCommandAccomplished = self.checkLastCommandNewState(device,lastCommand)
-
-        if (lastCommandAccomplished):
-            if tryCount > 1:
-                indigo.server.log (device.name + ': Now, Roomba is awaken. And it accomplished the command "' + lastCommand + '"')
-            self.deviceList [device.id]['lastCommandCount'] = 0
-            self.deviceList [device.id]['lastCommand'] = ""
-            self.deviceList [device.id]['lastCommandAccomplished'] = True
+        indigo.server.log ('Trying to awake ' + device.name + ' ...')
+        looping       = True
+        loopCount     = 0
+        lastCommand   = self.deviceList [device.id]['lastCommand']
+        stateChanged  = False
+        while (looping):
+            self.sendRequestOnly (device, "/command.json?command=" + lastCommand)
+            stateChanged = self.checkStateChanged(device)
+            loopCount = loopCount + 1
+            if loopCount > 10:
+                looping = False
+            if stateChanged:
+                looping = False
+        if stateChanged:
             return True
         else:
-            lastCommandCount = lastCommandCount - 1
-            if lastCommandCount > 0:
-                self.deviceList [device.id]['lastCommandCount'] = lastCommandCount
-                self.debugLog(device.name + ': Retry to send "' + lastCommand + '" command. Try #' + str(tryCount) )
-                if self.sendRequest (device,"/command.json?command=" + lastCommand) == True:
-                    return True
-                else:
-                    return False
-            else:
-                self.deviceList [device.id]['lastCommandCount'] = 0
-                self.deviceList [device.id]['lastCommand'] = ""
+            return False
+
+    def retryLastCommand(self, device):
+        if not(self.checkSleepingDevice(device)):
+            self.deviceList [device.id]['lastCommandAccomplished'] = True          
+            return True
+        
+        lastCommandCount   = int(self.deviceList [device.id]['lastCommandCount'])
+        if not(lastCommandCount > 0):
+            self.deviceList [device.id]['lastCommandAccomplished'] = True
+            return True
+
+        tryCount           = (self.maxRetryLastCommand - lastCommandCount + 1)
+        lastCommand        = self.deviceList [device.id]['lastCommand']
+        stateChanged       = self.checkStateChanged(device)
+
+        if not(stateChanged):
+            if tryCount > 1:
+                if self.bombDevice(device):
+                    stateChanged = True
+
+        if not (stateChanged):
+            self.sleep (8)
+            if self.checkStateChanged(device):
+                stateChanged = True
+            else: 
+                if tryCount == 1:
+                    indigo.server.log (device.name + ': Roomba is asleep!')
+
+        if (stateChanged):
+            if tryCount > 1:
+                indigo.server.log (device.name + ': Roomba is now awoken!')
+            if self.checkWishedState(device,lastCommand):
                 self.deviceList [device.id]['lastCommandAccomplished'] = True
                 return True
+            else:
+                indigo.server.log (device.name + ': Retry to send "' + lastCommand + '" command. Try #' + str(tryCount) )
+                if self.sendRequest (device,"/command.json?command=" + lastCommand) == True:
+                    sleep (8)
+                    if self.checkWishedState(device,lastCommand):
+                        self.deviceList [device.id]['lastCommandAccomplished'] = True
+                        return True                   
+                
+        lastCommandCount = lastCommandCount - 1
+        self.deviceList [device.id]['lastCommandCount'] = lastCommandCount
+        return False
+
+        #else:
+        #    lastCommandCount = lastCommandCount - 1
+        #    if lastCommandCount > 0:
+        #        self.deviceList [device.id]['lastCommandCount'] = lastCommandCount
+        #        self.debugLog(device.name + ': Retry to send "' + lastCommand + '" command. Try #' + str(tryCount) )
+        #        if self.sendRequest (device,"/command.json?command=" + lastCommand) == True:
+        #            return True
+        #        else:
+        #            return False
+        #    else:
+        #        self.deviceList [device.id]['lastCommandAccomplished'] = True
+        #        return True
+        return False
 
     def sendRequestOnly (self, device, urlAction):
         if device.id not in self.deviceList:
