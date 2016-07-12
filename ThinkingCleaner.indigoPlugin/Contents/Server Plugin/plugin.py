@@ -451,7 +451,7 @@ class Plugin(indigo.PluginBase):
         except Exception, e:
             self.plugin.errorLog(u"WebHook: Error: " + str(e))
       
-    def sensorUpdateFromWebhook (self, hookSource): #address,uuid): 
+    def sensorUpdateFromWebhook (self, hookSource): 
         found = False       
         for deviceId in self.deviceList:
             if self.deviceList[deviceId]['address'] == hookSource["ipaddress"]:
@@ -618,7 +618,8 @@ class Plugin(indigo.PluginBase):
             if tryCount == 1:
                 self.sleep(8)
             elif tryCount == 2:
-                looping   = true
+                indigo.server.log (device.name + ': Trying to awake')
+                looping   = True
                 loopCount = 0
                 while (looping):
                     self.sendRequestOnly (device, "/command.json?command=" + lastCommand)
@@ -641,7 +642,7 @@ class Plugin(indigo.PluginBase):
 
         if (lastCommandAccomplished):
             if tryCount > 1:
-                self.debugLog(device.name + ': Now, Roomba is awaken. And it accomplished the command "' + lastCommand + '"')
+                indigo.server.log (device.name + ': Now, Roomba is awaken. And it accomplished the command "' + lastCommand + '"')
             self.deviceList [device.id]['lastCommandCount'] = 0
             self.deviceList [device.id]['lastCommand'] = ""
             self.deviceList [device.id]['lastCommandAccomplished'] = True
