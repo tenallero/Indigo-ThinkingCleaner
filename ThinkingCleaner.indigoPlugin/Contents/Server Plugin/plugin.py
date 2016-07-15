@@ -70,9 +70,10 @@ class Plugin(indigo.PluginBase):
         self.reqTimeout = 8
          # Pooling interval
         self.pollingIntervalDock          = 120
-        self.pollingIntervalDockSleep     = 20
+        self.pollingIntervalDockSleep     = 10
         self.pollingIntervalClean         = 30
-        self.pollingIntervalSearchingDock = 5
+        self.pollingIntervalCleanSleep    = 5
+        self.pollingIntervalSearchingDock = 2
         # Pooling
         self.pollingInterval = 2
         # Flag buttonRequest is processing
@@ -515,7 +516,10 @@ class Plugin(indigo.PluginBase):
                                     if indigo.devices[deviceId].states["SearchingDock"] == 'Yes':
                                         pollingInterval = self.pollingIntervalSearchingDock
                                     else:
-                                        pollingInterval = self.pollingIntervalClean
+                                        if self.checkSleepingDevice(indigo.devices[deviceId]):
+                                            pollingInterval = self.pollingIntervalCleanSleep
+                                        else:
+                                            pollingInterval = self.pollingIntervalClean
                                 elif state == "stop":
                                     pollingInterval = self.pollingIntervalClean
                                 else:
