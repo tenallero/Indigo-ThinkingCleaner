@@ -551,6 +551,11 @@ class Plugin(indigo.PluginBase):
     # HTTP Request against Thinking Cleaner device.
     ###################################################################
 
+    def cleanLastCommand (self, device):
+        self.deviceList [device.id]['lastCommandAccomplished'] = True 
+        self.deviceList [device.id]['lastCommand'] = ""
+        self.deviceList [device.id]['lastCommandCount'] = 0
+
     def storeLastCommand (self, device, command):
         if self.checkSleepingDevice(device):
             command = command.strip()
@@ -658,12 +663,12 @@ class Plugin(indigo.PluginBase):
 
     def retryLastCommand(self, device):
         if not(self.checkSleepingDevice(device)):
-            self.deviceList [device.id]['lastCommandAccomplished'] = True          
+            self.cleanLastCommand (device)          
             return True
         
         lastCommandCount   = int(self.deviceList [device.id]['lastCommandCount'])
         if not(lastCommandCount > 0):
-            self.deviceList [device.id]['lastCommandAccomplished'] = True
+            self.cleanLastCommand (device) 
             return True
 
         tryCount           = (self.maxRetryLastCommand - lastCommandCount + 1)
@@ -701,7 +706,7 @@ class Plugin(indigo.PluginBase):
         if (stateChanged):
             indigo.server.log (device.name + ': Roomba is awoken!')
             if self.checkWishedState(device,lastCommand):
-                self.deviceList [device.id]['lastCommandAccomplished'] = True
+                self.cleanLastCommand (device) 
                 indigo.server.log (device.name + ': "' + lastCommand + '" command accomplished')
                 return True
                 
