@@ -73,7 +73,7 @@ class Plugin(indigo.PluginBase):
         self.pollingIntervalDockSleep     = 10
         self.pollingIntervalClean         = 30
         self.pollingIntervalCleanSleep    = 5
-        self.pollingIntervalSearchingDock = 2
+        self.pollingIntervalSearchingDock = 1
         # Pooling
         self.pollingInterval = 2
         # Flag buttonRequest is processing
