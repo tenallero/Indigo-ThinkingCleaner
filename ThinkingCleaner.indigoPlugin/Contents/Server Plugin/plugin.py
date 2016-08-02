@@ -21,6 +21,7 @@ from SocketServer import ThreadingMixIn
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import threading
 from ghpu import GitHubPluginUpdater
+import time
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -61,6 +62,36 @@ class httpHandler(BaseHTTPRequestHandler):
         except Exception, e:
             self.plugin.errorLog(u"WebHook: Error: " + str(e))
 
+class keepAliveDaemon (threading.Thread):
+    def __init__(self, plugin):
+        try:
+            super(keepAliveDaemon, self).__init__()
+            self.plugin = plugin
+            self.plugin.debugLog(u"KeepAlive: New thread.")
+        except Exception, e:
+            self.plugin.errorLog(u"KeepAlive: Error: " + str(e))
+
+    def run(self):
+        self.plugin.debugLog(u"KeepAlive: Starting daemon")
+        try:   
+            while not self.plugin.keepAliveStop:
+            	time.sleep (0.100)              
+                for deviceId in self.plugin.deviceList:
+                    device = indigo.devices[deviceId]
+                    devProps = device.pluginProps
+                    if devProps["sleepingproblem"]:
+                        #self.plugin.debugLog(u"KeepAlive: " + device.name + " Requesting status 2")
+                        state = device.states["RoombaState"]
+                        theUrl = u"http://" + device.pluginProps["address"] + '/status.json'
+                        try:
+                            data = urllib2.urlopen(theUrl).read()
+                        except Exception, e: 
+                            pass
+            #self.plugin.debugLog(u"KeepAlive: Stopping daemon ")       
+        except Exception, e:
+            self.plugin.errorLog(u"KeepAlive: Error: " + str(e))   
+
+
 class Plugin(indigo.PluginBase):
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
@@ -87,6 +118,9 @@ class Plugin(indigo.PluginBase):
         self.webhookPort = 0
         self.sock = None
         self.socketBufferSize = 256
+        # KeepAlive
+        self.keepAliveEnabled = True
+        self.keepAliveStop    = False
         # Discovery
         self.discoveryWorking = False
  
@@ -158,7 +192,8 @@ class Plugin(indigo.PluginBase):
                 'lastCommandCount':0,
                 'lastCommandAccomplished':True,
                 'lastState':"",
-                'lastSearchingDock':"No"
+                'lastSearchingDock':"No",
+                'sleepingproblem': device.pluginProps["sleepingproblem"]
                 }
                 self.sensorUpdateFromRequest(device)
 
@@ -179,9 +214,11 @@ class Plugin(indigo.PluginBase):
         self.reqRunning = False
         socket.setdefaulttimeout(self.reqTimeout)        
         self.startWebhook()
+        self.startKeepAlive()
         self.updater.checkForUpdate()
 
     def shutdown(self):
+        self.shutdownKeepAlive()
         self.debugLog(u"shutdown called")
 
     def deviceCreated(self, device):
@@ -190,7 +227,10 @@ class Plugin(indigo.PluginBase):
     def deviceDeleted(self, device):
         indigo.server.log (u"Deleted device \"%s\" of type \"%s\"" % (device.name, device.deviceTypeId))
         self.deleteDeviceFromList (device)
-             
+
+    #def deviceUpdated (self, origDev, newDev):
+    #    pass
+
     def loadPluginPrefs(self):
         # set debug option
         if 'debugEnabled' in self.pluginPrefs:
@@ -211,7 +251,12 @@ class Plugin(indigo.PluginBase):
             self.webhookPort = 0
             self.webhookDiscovery = False         
         self.reqTimeout = 8
-        
+
+        if 'keepAliveEnabled' in self.pluginPrefs:
+            self.keepAliveEnabled = self.pluginPrefs.get('keepAliveEnabled',False)
+        else:
+            self.keepAliveEnabled = False
+        self.keepAliveEnabled = True
     
     ###################################################################
     # UI Validations
@@ -293,6 +338,28 @@ class Plugin(indigo.PluginBase):
         except socket.error:
             return False
         return True
+
+    ###################################################################
+    # Keep Alive
+    ###################################################################
+
+    def startKeepAlive(self):
+        if self.keepAliveEnabled:
+            try:  
+                self.kaThread = keepAliveDaemon(self)
+                self.kaThread.daemon = True
+                self.kaThread.start() 
+            except Exception, e:
+                self.errorLog(u"KeepAlive: Error: " + str(e))
+
+    def shutdownKeepAlive(self):
+        if self.keepAliveEnabled:
+            try: 
+                self.keepAliveStop = True
+                #self.kaThread.join()
+            except Exception, e:
+                self.errorLog(u"KeepAlive: Error: " + str(e))
+        
 
     ###################################################################
     # Device discovery
@@ -433,7 +500,6 @@ class Plugin(indigo.PluginBase):
             return False
         return True
 
-
     ###################################################################
     # WebHook
     ###################################################################
@@ -441,11 +507,11 @@ class Plugin(indigo.PluginBase):
     def startWebhook(self):
         if self.webhookEnabled:
             try:  
-                self.myThread = threading.Thread(target=self.listenHTTP, args=())
-                self.myThread.daemon = True
-                self.myThread.start() 
+                self.whThread = threading.Thread(target=self.listenHTTP, args=())
+                self.whThread.daemon = True
+                self.whThread.start() 
             except Exception, e:
-                self.plugin.errorLog(u"WebHook: Error: " + str(e))
+                self.errorLog(u"WebHook: Error: " + str(e))
      
     def listenHTTP(self):
         self.debugLog(u"WebHook: Starting HTTP listener on port " + str(self.webhookPort))
@@ -453,7 +519,7 @@ class Plugin(indigo.PluginBase):
             self.server = ThreadedHTTPServer(('', self.webhookPort), lambda *args: httpHandler(self, *args))
             self.server.serve_forever()
         except Exception, e:
-            self.plugin.errorLog(u"WebHook: Error: " + str(e))
+            self.errorLog(u"WebHook: Error: " + str(e))
       
     def sensorUpdateFromWebhook (self, hookSource): 
         found = False       
@@ -501,7 +567,6 @@ class Plugin(indigo.PluginBase):
         self.debugLog(u"Starting polling thread")
         try:
             while True:
-
                 if self.reqRunning == False:
                     todayNow = datetime.datetime.now()
                     for deviceId in self.deviceList:
@@ -544,6 +609,7 @@ class Plugin(indigo.PluginBase):
     def stopConcurrentThread(self):
         self.debugLog(u"stopConcurrentThread called")
         self.stopThread = True
+        self.keepAliveStop = True
         #self.shutdown = True
         
 
@@ -651,11 +717,7 @@ class Plugin(indigo.PluginBase):
                 looping = False
             if stateChanged:
                 looping = False
-        #if not (stateChanged):
-        #	self.sleep (1)
-        #	self.sendRequestOnly (device, "/command.json?command=" + lastCommand)
-        #    self.sleep (1)
-        #    stateChanged = self.checkStateChanged(device)
+
         if stateChanged:
             return True
         else:
@@ -728,7 +790,7 @@ class Plugin(indigo.PluginBase):
         self.debugLog("sending " + theUrl)
         while (requestTrial < requestMax) and (requestOK == False):
             try:
-                f = urllib2.urlopen(theUrl)
+                data = urllib2.urlopen(theUrl).read()
                 requestOK = True
             except Exception, e:
                 requestTrial += 1
@@ -736,8 +798,6 @@ class Plugin(indigo.PluginBase):
 
         if not (requestOK):
             self.errorLog(device.name + ": Error: " + lastError)
-            #self.errorLog(device.name + " did not received the request !")
-            #self.reqRunning = False
             return False
         return True
 
