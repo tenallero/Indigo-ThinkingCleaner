@@ -29,7 +29,13 @@ def now_milliseconds():
    return str(int(time.time() * 1000))
 
 def addURLTimeStamp(url):
-    return url + '&' + now_milliseconds()
+    newurl = url
+    if newurl.find('?') > 0:
+        newurl = newurl + '&'
+    else:
+        newurl = newurl + '?'
+    newurl = newurl + '_=' + now_milliseconds()
+    return newurl
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
@@ -87,15 +93,17 @@ class keepAliveDaemon (threading.Thread):
                     device = indigo.devices[deviceId]
                     devProps = device.pluginProps
                     if devProps["sleepingproblem"]:
-                        #self.plugin.debugLog(u"KeepAlive: " + device.name + " Requesting status 2")
                         state = device.states["RoombaState"]
                         theUrl = addURLTimeStamp (u"http://" + device.pluginProps["address"] + '/status.json')
                         try:
                             data = urllib2.urlopen(theUrl).read()
-                            #self.plugin.debugLog(u"KeepAlive: " + data) 
                         except Exception, e: 
                             pass
-            #self.plugin.debugLog(u"KeepAlive: Stopping daemon ")       
+                        theUrl = addURLTimeStamp (u"http://" + device.pluginProps["address"] + '/nav.json')
+                        try:
+                            data = urllib2.urlopen(theUrl).read()
+                        except Exception, e: 
+                            pass     
         except Exception, e:
             self.plugin.errorLog(u"KeepAlive: Error: " + str(e))   
 
