@@ -24,6 +24,13 @@ from ghpu import GitHubPluginUpdater
 import time
 
 
+
+def now_milliseconds():
+   return str(int(time.time() * 1000))
+
+def addURLTimeStamp(url):
+    return url + '&' + now_milliseconds()
+
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
@@ -82,9 +89,10 @@ class keepAliveDaemon (threading.Thread):
                     if devProps["sleepingproblem"]:
                         #self.plugin.debugLog(u"KeepAlive: " + device.name + " Requesting status 2")
                         state = device.states["RoombaState"]
-                        theUrl = u"http://" + device.pluginProps["address"] + '/status.json'
+                        theUrl = addURLTimeStamp (u"http://" + device.pluginProps["address"] + '/status.json')
                         try:
                             data = urllib2.urlopen(theUrl).read()
+                            #self.plugin.debugLog(u"KeepAlive: " + data) 
                         except Exception, e: 
                             pass
             #self.plugin.debugLog(u"KeepAlive: Stopping daemon ")       
@@ -709,7 +717,7 @@ class Plugin(indigo.PluginBase):
         lastCommand   = self.deviceList [device.id]['lastCommand']
         stateChanged  = False
         while (looping):
-            self.sendRequestOnly (device, "/command.json?command=" + lastCommand)
+            self.sendRequestOnly (device, "/command.json?command=" + lastCommand + '&' + now_milliseconds() )
             self.sleep (0.100)
             stateChanged = self.checkStateChanged(device)
             loopCount = loopCount + 1
@@ -786,7 +794,7 @@ class Plugin(indigo.PluginBase):
         requestMax   = 3
         requestOK    = False
 
-        theUrl = u"http://" + device.pluginProps["address"] + urlAction
+        theUrl = addURLTimeStamp (u"http://" + device.pluginProps["address"] + urlAction)
         self.debugLog("sending " + theUrl)
         while (requestTrial < requestMax) and (requestOK == False):
             try:
@@ -883,7 +891,7 @@ class Plugin(indigo.PluginBase):
 
         self.debugLog(device.name + ": Requesting status.")
 
-        theUrl = u"http://" + device.pluginProps["address"] + "/full_status.json"
+        theUrl = addURLTimeStamp(u"http://" + device.pluginProps["address"] + "/full_status.json")
 
         while (requestTrial < requestMax) and (requestOK == False):
             try:
@@ -1158,7 +1166,6 @@ class Plugin(indigo.PluginBase):
     
     def leaveDock(self, device):
         indigo.server.log(device.name + u": Leaving dock ....")
-        #self.sendRequest (device,"/command.json?command=leavehomebase")
         self.sendCommand (device,'leavehomebase')
         self.sleep(5)        
         pass        
