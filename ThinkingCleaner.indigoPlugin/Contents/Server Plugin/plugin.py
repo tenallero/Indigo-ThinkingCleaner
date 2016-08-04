@@ -1131,10 +1131,18 @@ class Plugin(indigo.PluginBase):
                 indigo.server.log(device.name + ": changed state to " + sState)
                 self.updateDeviceState(device, "RoombaState", sState)
 
+        uiValue = sState
+        if uiValue == 'dock':
+            if sBatteryLevel < 100:
+                uiValue = uiValue + ' ' + str(sBatteryLevel) + '%'
+        elif uiValue == 'clean':
+            if sSearchingDock == 'Yes':
+                uiValue = 'searching'
+                
         if (sState == "clean") or (sState == "waiting"):
-            device.updateStateOnServer("onOffState", True)
+            device.updateStateOnServer("onOffState", True, uiValue=uiValue)
         else:
-            device.updateStateOnServer("onOffState", False)
+            device.updateStateOnServer("onOffState", False, uiValue=uiValue)
     
         uuid   = payloadDict ['firmware']['uuid']
         tctype = payloadDict ['tc_status']['modelnr'] 
