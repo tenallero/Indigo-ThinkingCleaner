@@ -725,11 +725,11 @@ class Plugin(indigo.PluginBase):
         lastCommand   = self.deviceList [device.id]['lastCommand']
         stateChanged  = False
         while (looping):
+            self.sleep (0.010)
             self.sendRequestOnly (device, "/command.json?command=" + lastCommand + '&' + now_milliseconds() )
-            self.sleep (0.100)
             stateChanged = self.checkStateChanged(device)
             loopCount = loopCount + 1
-            if loopCount > 10:
+            if loopCount > 30:
                 looping = False
             if stateChanged:
                 looping = False
